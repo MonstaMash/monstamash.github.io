@@ -51,7 +51,7 @@
 <script src="trivantis-strings.js" charset="UTF-8"></script>
 <script>
 
-
+<!-- 
 var trivPageScope = {};
 var pgID = 'page2692';
 trivWeb20Popups = true;
@@ -136,7 +136,7 @@ VarTrivSelCap = new Variable( 'VarTrivSelCap', 'none', 0, 0, null, null, 'adapti
 Varresult = new Variable( 'Varresult', '0', 0, 0, null, null, 'adaptivelearningproto1', false )
 Varquiz = new Variable( 'Varquiz', '0', 0, 0, null, null, 'adaptivelearningproto1', false )
 
-onload = init11;
+onload = init;
 (window.myTop || window).onunload = finish
 
 function init() {
@@ -184,7 +184,7 @@ function init11() {
 }
 function postPageShowAction(){
   if ( trivPageTracking.GetRangeStatus(2692) == 'notstarted' ) trivPageTracking.SetRangeStatus(2692,2);
-}
+}  
 
 var trivGoToPage = null
 var trivCompleteCnt = 1;
@@ -195,8 +195,8 @@ var trivPageExited = false;
 var trivInTest = false;
 
 function finish() {
-   if (window.finishCalled) return;
-    window.finishCalled = true;
+   if (window.finishCalled) return; 
+    window.finishCalled = true; 
 }
 
 function trivOnFocus() {
@@ -265,13 +265,13 @@ function OnDeviceRotate() {
 }
 
 function action3611(fn){
-    Varresult.set('0');
+    Varresult.set('0'); 
     if(fn && typeof(fn) == 'string' ) eval(fn);
     else if(fn && typeof(fn) == 'function' ) fn();
 }
 
 function action6496(fn){
-    Varquiz.set('0');
+    Varquiz.set('0'); 
     if(fn && typeof(fn) == 'string' ) eval(fn);
     else if(fn && typeof(fn) == 'function' ) fn();
 }
@@ -322,7 +322,7 @@ text108.addOpacity(100)
 text108.arrCSSStyles = new Array();
 text108.arrCSSStyles.push('span.text108Font1 { font-size:24px; font-family:"Aleo"; color:#ffffff;}');
 text108.arrCSSStyles.push('span.text108Font2 { font-size:24px; font-family:"Arial", sans-serif; color:#000000;}');
-text108.addInnerText('<div id=\"text108\" aria-hidden=\"true\" ><table style=\"border-collapse:collapse;top:0px;position:absolute; border-spacing:0; width:100%; height:100%\">\n<tr>\n<td style=\"position: absolute;top:0px;left:0px;box-sizing:border-box;width:100%;vertical-align:top;height:100%;padding:5px\">\n<div style=\'height:100%;width:100%;overflow-y:hidden;overflow-x:hidden;\'>\n\n<p  legLH=\"1.296\" style=\"margin-left:0px;text-indent:0px;line-height:1.296;margin-top:0px;margin-bottom:0px;text-align:left;\" >\n<span class=\"text108Font1\" style=\"position:relative;top:-1px;\" >Adaptive Learning Prototype \n</span ></p >\n<p  legLH=\"1.296\" style=\"margin-left:0px;text-indent:0px;line-height:1.296;margin-top:0px;margin-bottom:0px;text-align:left;\" >\n<span class=\"text108Font1\" style=\"position:relative;top:-1px;\" >Assess then Learn</span ><span class=\"text108Font2\" style=\"background-color:transparentposition:relative;top:-1px;\" >\n</span ></p >\n\n\n</div></td>\n</tr>\n</table>\n</div>\n');
+text108.addInnerText('<div id=\"text108\" aria-hidden=\"true\" ><table style=\"border-collapse:collapse;top:0px;position:absolute; border-spacing:0; width:100%; height:100%\">\n<tr>\n<td style=\"position: absolute;top:0px;left:0px;box-sizing:border-box;width:100%;vertical-align:top;height:100%;padding:5px\">\n<div style=\'height:100%;width:100%;overflow-y:hidden;overflow-x:hidden;\'>\n\n<p  legLH=\"1.296\" style=\"margin-left:0px;text-indent:0px;line-height:1.296;margin-top:0px;margin-bottom:0px;text-align:left;\" >\n<span class=\"text108Font1\" style=\"position:relative;top:-1px;\" >Adaptive Learning Prototype 1 \n</span ></p >\n<p  legLH=\"1.296\" style=\"margin-left:0px;text-indent:0px;line-height:1.296;margin-top:0px;margin-bottom:0px;text-align:left;\" >\n<span class=\"text108Font1\" style=\"position:relative;top:-1px;\" >Assess then Learn</span ><span class=\"text108Font2\" style=\"background-color:transparentposition:relative;top:-1px;\" >\n</span ></p >\n\n\n</div></td>\n</tr>\n</table>\n</div>\n');
 text108.build()
 
 og3604 = new ObjInline('og3604',null,0,0,0,0,1,0)
