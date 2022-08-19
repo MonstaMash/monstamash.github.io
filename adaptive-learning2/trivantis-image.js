@@ -47,8 +47,6 @@ function ObjImage(n,i,a,x,y,w,h,v,z,d,t,fb, cl) {
   this.imgNS = '';
   this.filterid = isSinglePagePlayerAvail() ? window.trivPlayer.activePage.nameNoEx + '_' + this.name : this.name;
   this.bHasSvgImageFill = false;
-  this.bDontAdjust = false;
-  this.bEmptyAlt = false;
 }
 
 function ObjImageActionGoTo( destURL, destFrame ) {
@@ -346,7 +344,6 @@ p.validateSrc = ObjImageValidSource
 p.setTextVal = ObjShapeSetTextVal
 p.setImgFillVal = ObjShapeImageFillVal
 p.buildText = ObjImageBuildText
-p.buildSpanText = ObjShapeBuildSpanText
 p.buildSvgImgFill = ObjImageBuildSvgImgFill
 p.refresh = ObjImageRefresh
 p.getCSS  = ObjImageGetCSS
@@ -355,7 +352,6 @@ p.rv = ObjImageRV
 p.setUniqueFillID = ObjImageSetID
 p.isImage = ObjImageIsImage
 p.initLineWeight = ObjShapeInitLineWeight
-p.focus = ObjImageFocus
 
 p.updateFillSize = function (){
 	if( is.svg && this.str_SvgMapPath )
@@ -373,14 +369,12 @@ p.updateFillSize = function (){
 			var shapePath =  getDisplayDocument().getElementById(this.name + "path");
 			if(!shapePath.style.fillRule)		
 			{
-					var adjustBy = this.bDontAdjust ? parseInt(this.lineWeight == 1 ? this.lineWeight * 2 : this.lineWeight   ) : 0; 
-
-					adjustPictureFill.setAttribute('width' , this.pathBBox.width + adjustBy);
-					adjustPictureFill.setAttribute('height' , this.pathBBox.height + adjustBy);
-					adjustPictureFill.querySelector('image').setAttribute('width' , this.pathBBox.width + adjustBy);
-					adjustPictureFill.querySelector('image').setAttribute('height' , this.pathBBox.height + adjustBy);
-					adjustPictureFill.querySelector('image').setAttribute('x' , this.bDontAdjust ? 0 : this.lineWeight / 2);
-					adjustPictureFill.querySelector('image').setAttribute('y' , this.bDontAdjust ? 0 : this.lineWeight / 2);
+					adjustPictureFill.setAttribute('width' , this.pathBBox.width);
+					adjustPictureFill.setAttribute('height' , this.pathBBox.height);
+					adjustPictureFill.querySelector('image').setAttribute('width' , this.pathBBox.width);
+					adjustPictureFill.querySelector('image').setAttribute('height' , this.pathBBox.height);
+					adjustPictureFill.querySelector('image').setAttribute('x' , this.lineWeight / 2);
+					adjustPictureFill.querySelector('image').setAttribute('y' , this.lineWeight / 2);
 					if(this.str_SvgB64Img)
 					{
 						adjustPictureFill.querySelector('image').setAttributeNS('http://www.w3.org/1999/xlink','href',this.str_SvgB64Img);
@@ -433,34 +427,17 @@ function ObjImageBuild() {
 	else if( this.altName && this.bUseSvgFile && !is.firefox) altTag = ' title="'+'" alt="'+'"'
 	else if( this.altName && this.bUseSvgFile && is.firefox) altTag = ' title="'+this.altName+'" alt="'+'"'
 	else if( this.altName != null )	altTag = ' title="" alt=""'
-
-	if( this.bEmptyAlt && this.bUseSvgFile) altTag += ' aria-hidden ="true"';
-
 	this.div += '<' + this.divTag + ' id="'+this.name+'" '+altTag+''
 
 	if( this.addClasses ) this.div += ' class="'+this.addClasses+'"'
-	//LD-7739 if(this.altName)	this.div += 'aria-live="polite"'; // aria -live for shapes
+	if(is.bWCAG && this.altName)	this.div += 'aria-live="polite"'; // aria -live for shapes
 	this.div += '></' + this.divTag +'>\n'
 	this.divInt = "";
 	
 	if(this.hasOnUp){
-		this.divInt += '<a name="' + this.name + 'anc" id="' + this.name + 'anc"';
-
-		// LD-7795 changes for focus action
-		var tagData = getHasOnUpHref(this);
-
-		var ancStyle = 'width:' + this.w + 'px; height:' + this.h + 'px; position:absolute;';
-		if (tagData['style'] != undefined)
-			ancStyle += tagData['style'];
-		this.divInt += ' style="' + ancStyle + '"';
-
-		if (tagData['href'] != undefined)
-			this.divInt += ' href="' + tagData['href'] + '"';
-		else
-			this.divInt += 'href="javascript://' + this.name + '"';
-
-		this.divInt += '>';
-
+		this.divInt += '<a name="'+this.name+'anc" id="' + this.name + 'anc"'
+		getHasOnUpHref(this);
+		this.divInt += '>'
 	}
 	
 	if( UseHtmlImgTag(this) && ( !this.bUseSvgFile || is.ie9) || (!is.svg && !this.bUseSvgFile) ){
@@ -502,18 +479,9 @@ function ObjImageBuild() {
 }
 
 function getHasOnUpHref(THIS){
-	// LD-7795 changes for focus action
-	var retObj = {};
-	if ((is.iOS || THIS.bIsWCAG) && !is.ie)
-		retObj['href'] = 'javascript:' + THIS.name + 'Object.up()';
-	else if (THIS.bIsWCAG && THIS.altName != "")
-	{
-		retObj['href'] = 'javascript:void(null)';
-		retObj['style'] = 'cursor:default;';
-	}
-	else if (is.ie)
-		retObj['href'] = UseHtmlImgTag(THIS) ? 'javascript:' + THIS.name + 'Object.onUp(null)' : '';
-	return retObj;
+	if((is.iOS || THIS.bIsWCAG) && !is.ie) THIS.divInt += ' href="javascript:' + THIS.name + 'Object.up()"';
+	else if(THIS.bIsWCAG && THIS.altName != "") THIS.divInt += ' href="javascript:void(null)" style="cursor:default;"';
+	else if(is.ie) THIS.divInt += UseHtmlImgTag(THIS)?' href="javascript:' + THIS.name + 'Object.onUp(null)"':'';
 }
 
 function ObjImageBuildSvg(){
@@ -725,8 +693,8 @@ function ObjShapeBuildSvg(){
 		if(this.lineWeight % 2 != 0)
 			bTranslate = true;
 		var pathSource =  "<path " + (bTranslate? "transform=\"translate(0.5 0.5)\"" :"")+ "d='"+this.str_SvgMapPath +"'  style=\"" + this.str_SvgFills;
-		var textSource = this.buildSpanText(this.name + 'ReflectionDiv');
-		var imgFSource = "<path " + (bTranslate? "transform=\"translate(0.5 0.5)\"" :"")+ "d='"+this.str_SvgMapPath +"'  style=\"" +  (typeof(this.str_SvgImgFills)!='undefined' ? this.str_SvgImgFills : "fill:none") + ";\"";
+		var textSource = "<path " + (bTranslate? "transform=\"translate(0.5 0.5)\"" :"")+ "d='"+this.str_SvgMapPath +"'  style=\"" + this.str_TxtFill + ";\"";
+		var imgFSource = "<path " + (bTranslate? "transform=\"translate(0.5 0.5)\"" :"")+ "d='"+this.str_SvgMapPath +"'  style=\"" + this.str_SvgImgFills + ";\"";
 		this.divReflect = addReflection(this.name, (!this.bOffPage?pathSource:''), this.reflectedImageX, this.reflectedImageY, this.reflectedImageWidth, 
 										this.reflectedImageHeight, this.r, this.reflectedImageOffset, this.reflectedImageFadeRate, this.v, this.vf, this.hf, 
 										this.boundsRectX, this.boundsRectY, this.wrkAdornerWidth, this.wrkAdornerHeight, zIndex, 
@@ -836,12 +804,9 @@ function ObjShapeBuildSvg(){
 	
 	if(this.bHasSvgImageFill)
 		this.divInt += this.buildSvgImgFill(mapOffsetX, mapOffsetY);
-		
-	
+	this.divInt += this.buildText(mapOffsetX , mapOffsetY);
 	
 	this.divInt += '</svg>\n'
-	
-	this.divInt += this.buildSpanText(this.name, mapOffsetX, mapOffsetY);
 	
 	if(this.bUseSvgFile && this.t && this.t.length > 0) this.divInt += '<div class="'+this.name+'Text"><span class="'+this.name+'Text" style="z-index:1;">'+this.t+'</span></div>'	
 	
@@ -853,25 +818,6 @@ function ObjShapeBuildSvg(){
 		
 		
 	this.divInt += '</a>'
-}
-
-function ObjShapeBuildSpanText(name, mapOffsetX, mapOffsetY)
-{
-	var txtReturn = "";
-	txtReturn += '<div aria-hidden=\"true\" class="' + this.name +'Text" id="'+ name +'TextDiv" ';
-	txtReturn += 'style= "' 
-
-	if(mapOffsetX != 0 || mapOffsetY != 0 )
-	 txtReturn += "left:"+ mapOffsetX + "px; top:" +mapOffsetY + "px; ";
-	txtReturn += '"';
-
-	txtReturn += '>'
-	txtReturn += '<span aria-hidden=\"true\" class="' + this.name +'Text" id="'+ name +'TextSpan"> ';
-	txtReturn += typeof(this.text)!='undefined' ? this.text : "";
-	txtReturn += "</span>";
-	txtReturn += "</div>";
-	return txtReturn;
-
 }
 
 function ObjImageBuildSvgImgFill( mapOffsetX , mapOffsetY)
@@ -1250,16 +1196,15 @@ function ObjImageOnShow(bFromActivate) {
 	this.drawLine();
 
 	var THIS = this;
-	if (is.bWCAG && this.altName && (!bFromActivate || isLDPopup()))
-		ariaReadThisText(this.altName);
+	if(is.bWCAG && this.altName && !bFromActivate)
+		setTimeout( function() {THIS.div.innerHTML = THIS.div.innerHTML;} , 100);
 }
 
 function ObjImageOnHide() {
   this.alreadyActioned = true;
   this.objLyr.actionHide();
-  
-  if( this.matchLine && this.matchLine.dv && this.matchLine.dv.parentNode )
-	this.matchLine.dv.parentNode.removeChild(this.matchLine.dv); // this.matchLine.ResizeTo( -10, -10, -10, -10 );
+  if( this.matchLine )
+	this.matchLine.ResizeTo( -10, -10, -10, -10 );
 }
 
 function ObjImageIsVisible() {
@@ -1480,8 +1425,8 @@ function ObjInitImageMap(boolVal, str, str2, str3, str4 , str5)
 
 function ObjShapeSetTextVal( str  , str2)
 {
-	this.textDivCSS = str;
-	this.spanDivCSS = str2;
+	this.td = str;
+	this.str_TxtFill = str2;
 }
 
 function ObjShapeImageFillVal(str, str2 )
@@ -1510,12 +1455,7 @@ function ObjLoadProps()
 			this.h = typeof(obj.h)!="undefined"?obj.h:this.h;
 			this.bBottom = (typeof(obj.bOffBottom)!="undefined"?obj.bOffBottom:this.bBottom);
 			this.stylemods = typeof(obj.stylemods)!="undefined"?obj.stylemods:null;
-			if(this.stylemods && this.stylemods.length == 2)
-			{
-				this.textDivCSS = this.stylemods[0].sel + this.stylemods[0].decl;
-				this.spanDivCSS = this.stylemods[1].sel + this.stylemods[1].decl;
-			}
-
+			this.td = typeof(obj.td)!="undefined"?obj.td:this.td;
 			this.str_SvgB64Img = typeof(obj.fd)!="undefined"?obj.fd:this.str_SvgB64Img;
 			this.str_SvgMapPath = typeof(obj.p)!="undefined"?obj.p:this.str_SvgMapPath;
 			
@@ -1561,6 +1501,19 @@ function ObjRespChanges()
 	}
 	
 	this.updateFillSize();
+		
+	if(this.td)
+	{
+		var replaceFill = getDisplayDocument().getElementById ( "Text_" + this.fuID);
+		if(replaceFill)
+		{
+			replaceFill.setAttribute('width' , this.w);
+			replaceFill.setAttribute('height' , this.h);
+			replaceFill.querySelector('image').setAttributeNS('http://www.w3.org/1999/xlink','href',this.td);
+			replaceFill.querySelector('image').setAttribute('width' , this.w);
+			replaceFill.querySelector('image').setAttribute('height' , this.h);
+		}
+	}
 		
 	//Adjust the CSS
 	FindAndModifyObjCSSBulk(this, this.stylemods);
@@ -1805,23 +1758,4 @@ function ObjImageIsImage(){
 function ObjShapeInitLineWeight( val )
 {
 	this.lineWeight = val;
-}
-function ObjImageFocus()
-{
-	var THIS = this;
-	var focusElem = triv$('a', this.div).get(0) || this.div;
-
-	if (!is.bWCAG)
-	{
-		this.div.style.clip = 'auto';
-		if (!focusElem.onkeyup)
-			focusElem.onkeyup = function () {
-				if (THIS.hasOnUp)
-					THIS.onUp();
-			};
-	}
-
-	setTimeout(function () {
-		if (focusElem) focusElem.focus();
-	}, focusActionDelay);
 }

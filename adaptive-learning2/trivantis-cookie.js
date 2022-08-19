@@ -168,13 +168,13 @@ function saveVariableInCookie( name,value,days,title,lms, bHidden ){
       if ( cookieValue.length + newVal.length < 4000 )
       {
         if ( cookieValue && !isDel ) cookieValue = cookieValue.substring(0, cookieValue.length - 1); // remove ending '|'
-        setCookie( document, cookieName + '=' + cookieValue + newVal + props );
+        document.cookie = cookieName + '=' + cookieValue + newVal + props;
         // if ( document.cookie.length == 0 ) alert('IE7 4K cookie limit reached.  All variable data lost.');
         break;
       }
       else if ( cIdx == 0 ) // update where new value is too big for old cookie (save without var and move on)
       {
-        setCookie( document, cookieName + '=' + cookieValue + props );
+        document.cookie = cookieName + '=' + cookieValue + props;
         // if ( document.cookie.length == 0 ) alert('IE7 4K cookie limit reached.  All variable data lost.');
       }
       else if ( newVal.length >= 4000 ) // variable too big to insert or update
@@ -353,9 +353,9 @@ function convertCookies( title, bHidden )
 			if ( !oldCookies[ocbn] ) oldCookies[ocbn] = []
 			oldCookies[ocbn][oci] = ocv
 
-			//if ( window.console && console.log ) console.log('convertCookies: found old cookie ['+ (ocbn + oci) + '] length=[' + ocv.length + ']')
+			if ( window.console && console.log ) console.log('convertCookies: found old cookie ['+ (ocbn + oci) + '] length=[' + ocv.length + ']')
 
-			setCookie( document, ocbn + oci + '=' + expired + '; path=/' );
+			document.cookie = ocbn + oci + '=' + expired + '; path=/'
 		}
 	}
 
@@ -388,7 +388,7 @@ function convertCookies( title, bHidden )
 		var ncv = delim
 		var vars = oldCombinedValue.split('|')
 
-		//if ( window.console && console.log ) console.log('convertCookies: process old cookie ['+ baseName + '] parts(max)=[' + (oldCookies[baseName].length-1) + '] length=[' + oldCombinedValue.length + '] vars=[' + vars.length + ']')
+		if ( window.console && console.log ) console.log('convertCookies: process old cookie ['+ baseName + '] parts(max)=[' + (oldCookies[baseName].length-1) + '] length=[' + oldCombinedValue.length + '] vars=[' + vars.length + ']')
 
 		if(bTrivUseLocal)
 		{
@@ -432,7 +432,7 @@ function convertCookies( title, bHidden )
 
 					if ( newNvPair.length >= 4000 )
 					{
-						//if ( window.console && console.log ) console.log('convertCookies: VAR too large to process ['+ newName + '] length=[' + newNvPair.length + '] ++++++++++++++++++++++++++++++')
+						if ( window.console && console.log ) console.log('convertCookies: VAR too large to process ['+ newName + '] length=[' + newNvPair.length + '] ++++++++++++++++++++++++++++++')
 						if(!bHidden) trivLogMsg('convertCookies found VAR [' + newName + '] too large to process - length is ' + newNvPair.length)
 						continue
 					}
@@ -443,9 +443,9 @@ function convertCookies( title, bHidden )
 						continue
 					}
 					var newBaseName = baseName.replace('_', ':');
-					setCookie( document, '~' + newBaseName + ':' + nci + '=' + ncv + (isPerm ? expires : '') + '; path=/' );
+					document.cookie = '~' + newBaseName + ':' + nci + '=' + ncv + (isPerm ? expires : '') + '; path=/'
 
-					//if ( window.console && console.log ) console.log('convertCookies: saving ['+ ('~' + baseName + nci) + '] length=[' + ncv.length + ']')
+					if ( window.console && console.log ) console.log('convertCookies: saving ['+ ('~' + baseName + nci) + '] length=[' + ncv.length + ']')
 					if(!bHidden) trivLogMsg('convertCookies saving cookie ' + ('~' + baseName + nci) + ' with length ' + ncv.length)
 
 					nci++
@@ -456,9 +456,9 @@ function convertCookies( title, bHidden )
 			if ( ncv.length > 1 )
 			{
 				var newBaseName = baseName.replace('_', ':');
-				setCookie( document, '~' + newBaseName + ':' + nci + '=' + ncv + (isPerm ? expires : '') + '; path=/' );
+				document.cookie = '~' + newBaseName + ':' + nci + '=' + ncv + (isPerm ? expires : '') + '; path=/'
 
-				//if ( window.console && console.log ) console.log('convertCookies: saving ['+ ('~' + baseName + nci) + '] length=[' + ncv.length + ']')
+				if ( window.console && console.log ) console.log('convertCookies: saving ['+ ('~' + baseName + nci) + '] length=[' + ncv.length + ']')
 				if(!bHidden) trivLogMsg('convertCookies saving cookie ' + ('~' + baseName + nci) + ' with length ' + ncv.length)
 			}
 		}
@@ -535,9 +535,9 @@ function CleanOutCommas()
 			currCookie.indexOf(arrCookieNames[1]) == 0) && 
 			currCookie.indexOf(',') != -1 )
 		{
-			setCookie( document, cookieToDelete + expired + '; path=/' );
+			document.cookie = cookieToDelete + expired + '; path=/';
 			currCookie = currCookie.replace(/,/g, delim);
-			setCookie( document, currCookie + expires + '; path=/' );
+			document.cookie = currCookie + expires + '; path=/';
 		}
 	}
 }
@@ -568,7 +568,7 @@ function cleanupTitle(title)
 			m = reBaseName.exec(c)
 
 			if ( m && m.length == 2 )
-				setCookie( document, m[1] + '=' + props );
+				document.cookie = m[1] + '=' + props
 		}
 
 		
@@ -907,15 +907,6 @@ function VarSave() {
     } 
     this.value = EncodeNull( this.value )
     saveVariable(this.name,this.value,this.exp,this.title,this.aiccframe, this.bHidden)
-  }
-
-  // update text blocks that have references to variables via VAR() - the references are wrapped by a <span class="VarFoo"> element having a class matching the variable name
-
-  if ( this.name )
-  {
-    var displayValue = ( this.value == '~~~null~~~' ? '' : this.value );
-    triv$('span.' + this.name, getDisplayDocument()).html(displayValue);
-    // if ( window.console && console.log ) console.log('updating VARs in text for variable [' + this.name + '] to [' + displayValue + '] - found [' + triv$('.' + this.name).length + ']' + (triv$('.' + this.name).length > 0 ? ' *****' : ''));
   }
 }
 
@@ -1485,23 +1476,5 @@ function trivScormQuit(forceClose, titleName, notPageUnload)
 	}
 	else
 		CloseWnd();	// closing popup window
-}
-
-function setCookie(doc, nameAndValue)
-{
-	if ( doc && doc.cookie )
-	{
-		var nv = ( nameAndValue == undefined ? '' : String(nameAndValue) );
-
-		if ( nv.toLowerCase().indexOf('<script>') < 0 && nv.toLowerCase().indexOf('</script>') < 0 )
-		{
-			doc.cookie = nv;
-			return true;
-		}
-
-		alert('invalid cookie [' + nv + ']');
-	}
-
-	return false;
 }
 

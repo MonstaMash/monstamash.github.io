@@ -338,7 +338,6 @@ div[id^="audio"] .mejs__controls:not([style*='display: none']) {
 
 .mejs__replay > button {
     background: url(MediaPlayer/control-default.png) no-repeat 0 -72px;
-    left: 0;
 }
 
 .mejs__replay > button:hover {
@@ -833,12 +832,13 @@ div[id^="video"] .mejs__captions-layer {
 .mejs__captions-position {
     /*bottom: 15px;*/
     left: 0;
-    position: absolute; 
+    position: relative; /*absolute;*/
     width: 100%;
-    padding: 0 5px;
+	height: 100%;
 }
 
 .mejs__captions-position-hover {
+	padding: 0 5px;
     /*bottom: 35px;*/
 }
 
@@ -852,7 +852,8 @@ div[id^="video"] .mejs__captions-layer {
 	*/
 }
 
-div[id^="video"] .mejs__captions-text {
+div[id^="video"] .mejs__captions-text,
+.mejs__captions-text * {
     background: rgba(20, 20, 20, 0.5);
     box-shadow: 5px 0 0 rgba(20, 20, 20, 0.5), -5px 0 0 rgba(20, 20, 20, 0.5);
     white-space: pre-wrap;
@@ -1070,9 +1071,6 @@ div[id^="audio"] .mejs-noskin .mejs__controls {
 	height:0px;
 	left:0x;
 	top:0px;
-}
-.mejs__speed-button > button {
-    width: 30px;
 }
 .mejs-noskin .mejs-controls .mejs-stop button{
 

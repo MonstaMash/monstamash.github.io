@@ -52,7 +52,6 @@ p.addInnerText = ObjTextAddInnerText
 p.refresh = ObjTextRefresh
 p.getCSS = ObjTextCSS
 p.rv = ObjTextRV
-p.focus = ObjTextFocus
 }
 
 function ObjTextRefresh()
@@ -117,7 +116,7 @@ function ObjTextActivate()
 	}
 
 	this.objLyr.hide = function() {
-		var THIS = this;
+		THIS = this;
 		if(is.ieAny || is.edge) {
 			THIS.theObj.div.style.outlineWidth = 0;
 		}
@@ -126,17 +125,19 @@ function ObjTextActivate()
 	}
 	
 	this.objLyr.show = function(bFromActivate) {
-		
-		if(is.ieAny || is.edge)
-		{
-			var style = this.theObj.div.style;
-			style[style.removeProperty?'removeProperty':'removeAttribute']('outline-width');
+		THIS = this;
+		if(is.ieAny || is.edge) {
+			if (THIS.theObj.div.style.removeProperty) {
+				THIS.theObj.div.style.removeProperty('outline-width');
+			} else {
+				THIS.theObj.div.style.removeAttribute('outline-width');
+			}
 		}
 		
-		ObjLayer.prototype.show.call(this);
+		ObjLayer.prototype.show.call(THIS);
 
-		if (is.bWCAG && !this.theObj.bHideFromSR && (!bFromActivate || isLDPopup()))
-			ariaReadThisText(triv$(this.theObj.div).text());
+		if(is.bWCAG && !this.bHideFromSR && !bFromActivate)
+			setTimeout( function() {THIS.theObj.div.innerHTML = THIS.theObj.div.innerHTML;} , 100);
 	}
 
 	if(getDisplayDocument().documentMode < 8)
@@ -731,21 +732,15 @@ function ObjTextFixBulletScale()
 	}
 }
 
-var getInlineValue = function(matchedSubstring, firstMatchedGroup)
+var getInlineValue = function(a,b)
 {
-	var varName = firstMatchedGroup;
-	var v = window[varName];
-	var displayValue = v.getValue();
-
-	// wrap variable references with a <span class="VarFoo"> element having a class matching the variable name - this allows for dynamic update later when variable changes
-
-	return '<span class="' + varName + '">' + ( displayValue == '~~~null~~~' ? '' : displayValue ) + '</span>';
+  return window[a.replace(/%/g,"").substring("TRIVVAR_".length)].getValue();
 };
 
 function parseInlineVariable(innerStr)
 {
 	while (/\%TRIVVAR_([^%]*)\%/.test(innerStr))
-		innerStr = innerStr.replace(/\%TRIVVAR_([^%]*)\%/, getInlineValue);
+		innerStr = innerStr.replace(/\%TRIVVAR_([^%]*)\%/,getInlineValue);
 	return innerStr;
 };
 
@@ -1064,24 +1059,4 @@ function ObjTextRV(){
 		if(!this.v)
 			this.objLyr.ele.style.visibility = 'hidden';
 	}
-}
-function ObjTextFocus()
-{
-	var THIS = this;
-	var focusElem = triv$('a', this.div).get(0) || this.div;		// WCAG
-
-	if (!is.bWCAG)
-	{
-		focusElem = this.div;
-		if (!focusElem.onkeyup)
-			focusElem.onkeyup = function ()
-			{
-				if (THIS.hasOnUp)
-					THIS.onUp();
-			};
-	}
-
-	setTimeout(function () {
-		if (focusElem) focusElem.focus();
-	}, focusActionDelay);
 }

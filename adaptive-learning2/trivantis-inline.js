@@ -6,7 +6,7 @@ var ocmOrig = getDisplayDocument().oncontextmenu
 var ocmNone = new Function( "return false" )
 
 // Inline Object
-function ObjInline(n,a,x,y,w,h,v,z,c,d,s,fb,cl,cvr) {
+function ObjInline(n,a,x,y,w,h,v,z,c,d,s,fb, cl) {
   this.name = n
   this.altName = a
   this.x = x
@@ -60,7 +60,6 @@ function ObjInline(n,a,x,y,w,h,v,z,c,d,s,fb,cl,cvr) {
   this.opacity = 100;
   this.innerTxt = null;
   this.bInherited = false;
-  this.cvr = !!cvr;
 }
 
 function ObjInlineGetActualWidth()
@@ -378,17 +377,8 @@ function ObjInlineActionChangeContents( value, align, fntId ) {
 		div = splitDiv[0] + "</span></h" + this.heading + ">" + splitDiv[1];
 	}
 	
-	if (is.ns5) {
-		var ele = this.objLyr.ele;
-		if (triv$('table td div', ele).length > 0)
-			triv$('table td div', ele).first().html(div);
-		else {
-			var anc = triv$('a', ele).first();
-			this.objLyr.ele.innerHTML = div;
-			anc.prependTo(ele);
-		}
-	}
-	else this.objLyr.write( div );
+    if( is.ns5 ) this.objLyr.ele.innerHTML = div
+    else this.objLyr.write( div );
   }
   else {
     if ( this.parmArray[1] ) {
@@ -469,7 +459,7 @@ function ObjInlineActionChangeContents( value, align, fntId ) {
       this.build();
       var str = "";
       for (var i=0; i < this.numParms; i++) str = str + this.parmArray[i]
-		if( is.ns5 ) this.objLyr.ele.innerHTML = str
+      if( is.ns5 ) this.objLyr.ele.innerHTML = str
       else this.objLyr.write( str );
 	  this.flsPlayer = null;
     }
@@ -836,8 +826,6 @@ p.refresh = ObjInlineRefresh
 p.setupWinEvents = ObjInlineSetupWinEvents
 p.getCSS = ObjInlineGetCSS
 p.rv = ObjInlineRV
-p.updateButtonGrp = ObjButtonUpdateGroup
-p.focus = ObjInlineFocus
 p.initEvent = function()
 {
 	var THIS = this;
@@ -985,7 +973,7 @@ function ObjInlineActivate() {
   if(IsMedia(this) && this.v && this.bAutoStart && !this.bInherited)
 	  this.actionPlay();
   
-  this.objLyr.theObj = this;
+	this.objLyr.theObj = this;
 	// LD-5589 this.div is used for Anchoring, and it was not being kept up to date
   this.div = this.objLyr.ele;
   var tempObj = {xOffset:0, yOffset:0, width: this.w, height: this.h, xOuterOffset:0, yOuterOffset:0};
@@ -1052,8 +1040,8 @@ function ObjInlineOnHide() {
      eval( this.childArray[i] + ".actionHide()");
   this.objLyr.actionHide();
 
-  if( this.matchLine && this.matchLine.dv && this.matchLine.dv.parentNode )
-	this.matchLine.dv.parentNode.removeChild(this.matchLine.dv); // this.matchLine.ResizeTo( -10, -10, -10, -10 );
+  if( this.matchLine )
+	  this.matchLine.ResizeTo( -10, -10, -10, -10 );
   
   if( this.objLyr.doc.forms.length > 0 && this.objLyr.doc.forms[0].blur )
     this.objLyr.doc.forms[0].blur();
@@ -1074,12 +1062,13 @@ function ObjInlineOnShowAudio(){
 
 function ObjInlineOnHideAudio(){
   this.alreadyActioned = true;
-
   for ( var i=0; i<this.childArray.length; i++ )
      eval( this.childArray[i] + ".actionHideAudio()");
-
   this.objLyr.actionHideAudio();
 
+  if( this.matchLine )
+	  this.matchLine.ResizeTo( -10, -10, -10, -10 );
+  
   if( this.objLyr.doc.forms.length > 0 && this.objLyr.doc.forms[0].blur )
     this.objLyr.doc.forms[0].blur();
 }
@@ -1189,63 +1178,60 @@ function ObjInlineTransGrp( tOut, tNum, dur, x, y, objNameArr ) {
   else
     objNameArr = eval(objNameArr);
     
-	if (this.isGrp) {
-		var arObjs = [];
-		smallX = Infinity;
-		smallY = Infinity;
-
-		// ** Get smallest x and y positions
-		(function procGroup(groupObj) {
-			if (groupObj.childArray) {
-				for (var i = 0; i < groupObj.childArray.length; i++) {
-					var obj = eval(groupObj.childArray[i]);
-					if (obj.childArray && obj.childArray.length > 0)
-						procGroup(obj);
-					else {
-						arObjs.push(obj);
-						smallX = Math.min(smallX, obj.x);
-						smallY = Math.min(smallY, obj.y);
-                    }
-				}
-			}
-		})(this);
-
-		var isLeft = false;
-		var isUp   = false;
-    
-		var xVal = Math.abs(smallX - x);
-		if( smallX > x ) isLeft = true;
-    
-		var yVal = Math.abs(smallY - y);
-		if( smallY > y ) isUp = true;
-    
-		// ** move each obj
-		for (var i = 0; i < arObjs.length; i++ ) {
-			var currPosX;
-			var currPosY;
-			var obj = arObjs[i];
-			if( isLeft ) currPosX = obj.x - xVal;
-			else         currPosX = obj.x + xVal;
+  if( this.isGrp ) {
+    for ( var i = 0; i < this.childArray.length; i++ ) {
+      var obj = eval( this.childArray[i] )
       
-			if( isUp )   currPosY = obj.y - yVal;
-			else         currPosY = obj.y + yVal;
+      if (i == 0 ) {
+        smallX = obj.x;
+        smallY = obj.y;
+      }
       
-			for ( var j = 0; j < objNameArr.length; j++ ) {
-				if( obj.name == objNameArr[j]) {
-					var myObj = eval(objNameArr[j]);
-					myObj.doTrans(1,tNum,dur,null,myObj.x,myObj.y,currPosX,currPosY,0,0,0);
-					myObj.hasMoved = true;
-					myObj.newX = currPosX;
-					myObj.newY = currPosY;
-	  			}
-  			}
-			obj.objLyr.doTrans(tOut,tNum,dur,null,obj.objLyr.x,obj.objLyr.y,currPosX,currPosY,0,0,0);
-			obj.objLyr.hasMoved = true;
-			obj.objLyr.newX = currPosX;
-			obj.objLyr.newY = currPosY;
+      // ** Get smallest x position
+      if( smallX > obj.x )
+      	smallX = obj.x;
       
-		}
-	}
+      // ** Get smallest y position
+      if( smallY > obj.y )
+        smallY = obj.y;
+    }
+    
+    var isLeft = false;
+    var isUp   = false;
+    
+    var xVal = Math.abs(smallX - x);
+    if( smallX > x ) isLeft = true;
+    
+    var yVal = Math.abs(smallY - y);
+    if( smallY > y ) isUp = true;
+    
+    // ** move each obj
+    for ( var i = 0; i < this.childArray.length; i++ ) {
+      var currPosX = obj.x;
+      var currPosY = obj.y
+      var obj = eval( this.childArray[i] )
+      if( isLeft ) currPosX = obj.x - xVal;
+      else         currPosX = obj.x + xVal;
+      
+      if( isUp )   currPosY = obj.y - yVal;
+      else         currPosY = obj.y + yVal;
+      
+      for ( var j = 0; j < objNameArr.length; j++ ) {
+	      if( obj.name == objNameArr[j]) {
+	      	var myObj = eval(objNameArr[j]);
+	      	myObj.doTrans(1,tNum,dur,null,myObj.x,myObj.y,currPosX,currPosY,0,0,0);
+	      	myObj.hasMoved = true;
+            myObj.newX = currPosX;
+            myObj.newY = currPosY;
+	  	  }
+  	  }
+      obj.objLyr.doTrans(tOut,tNum,dur,null,obj.objLyr.x,obj.objLyr.y,currPosX,currPosY,0,0,0);
+      obj.objLyr.hasMoved = true;
+      obj.objLyr.newX = currPosX;
+      obj.objLyr.newY = currPosY;
+      
+    }
+  }
 }
 
 function ObjInlinefSetPlayState() {
@@ -1704,18 +1690,17 @@ function ObjInlineRefresh(){
 	}
 }
 
-function ObjInlineSetupWinEvents(varScore, varPath, varPassFail, varDuration, varPoints){
-	var webWinObj = this;
+function ObjInlineSetupWinEvents(varBTScore , varBTPath, webWinObj){
 	if(!is.ie8)
 	{
 		getDisplayWindow().addEventListener('message', function(event) {
-			var data = typeof event.data == 'object' ? event.data : JSON.parse(event.data);
+			var data = JSON.parse(event.data);
 			var messagedatatype = data.type;
 			var iFrame = getDisplayDocument().getElementById(webWinObj.name + "iframe");
 			if(iFrame && iFrame.contentWindow === event.source)
 			{
-				if(varScore)
-					webWinObj.Score = varScore;
+				if(varBTScore)
+					webWinObj.Score = varBTScore;
 				if (messagedatatype=='branchtrack:player:scene' && data.details.scene) {
 					
 					//Scene score is how BT told us how to implement initially, but the correct score is found elsewhere
@@ -1729,7 +1714,7 @@ function ObjInlineSetupWinEvents(varScore, varPath, varPassFail, varDuration, va
 					if(data.details.results && data.details.results.score)
 						newScore = data.details.results.score;
 
-					varScore.set(newScore);
+					varBTScore.set(newScore);
 				}
 				if (messagedatatype=='branchtrack:player:finish') {
 						try{ 
@@ -1738,77 +1723,10 @@ function ObjInlineSetupWinEvents(varScore, varPath, varPassFail, varDuration, va
 						}catch(e){}
 				}
 
-				if(varPath)
-					webWinObj.Path = varPath;
+				if(varBTPath)
+					webWinObj.Path = varBTPath;
 				if(messagedatatype=='branchtrack:player:scene' && typeof(data.details.playlog.path_indexes)!='undefined') {
-					varPath.set(data.details.playlog.path_indexes)
-				}
-				
-			}
-			// CVR ----------------------------
-			// other available messagetype:
-			//	'cenariovr:attempted'
-			//	'cenariovr:experienced'
-			//	'cenariovr:clicked'
-			//	'cenariovr:answered'
-			if (messagedatatype=='cenariovr:finish') {
-				if(varScore)
-					varScore.set(data.score);
-				if(varPassFail)
-					varPassFail.set(data.result);
-				if(varDuration)
-					varDuration.set(data.duration);
-				if ( webWinObj.onDone )
-					webWinObj.onDone();
-			}
-
-			if (messagedatatype == 'tga_game')
-			{
-				console.log(data);
-				switch (data.action)
-				{
-					case 'attempt':
-						webWinObj.bGameCompleted = false;
-						if (varDuration) varDuration.set('');
-						if (varPassFail) varPassFail.set('');
-						if (varScore) varScore.set('');
-						if (varPoints) varPoints.set('');
-						//cwObj.__requiredScore = null;
-						break;
-					case 'score':
-						if (webWinObj.bGameCompleted)
-						{
-							if (varDuration)
-								varDuration.set(Math.round(data.time / 1000));
-
-							if (varPoints)
-								varPoints.set(data.points);
-
-							// issue on done actions
-							if (webWinObj.onDone)
-								webWinObj.onDone();
-						}
-						break;
-					case 'completion':
-						// webWinObj.bGameCompleted = t;		// Jeopardy, Wheel of Fortune - they send 'complete' after each question
-						webWinObj.bGamePercentCorrect = data.percent_correct;
-						webWinObj.bGamePercentRequired = data.percent_required;
-						break;
-					case 'game_over':
-						webWinObj.bGameCompleted = true;
-						var pctCorrect = webWinObj.bGamePercentCorrect || 0;
-						var pctRequired = webWinObj.bGamePercentRequired || 0;
-						var bPass = !!(pctCorrect > pctRequired);
-
-						if (varPassFail)
-							varPassFail.set(bPass ? 'passed' : 'failed');		// TODO: 'completed'
-						if (varScore)
-							varScore.set(pctCorrect);
-
-						// set JS variable (undocumeted)
-						//cwObj.__percent_required = pctRequired;
-						//cwObj.__total_questions = data.total_questions;
-						break;
+					varBTPath.set(data.details.playlog.path_indexes)
 				}
 			}
 		})
@@ -1879,41 +1797,5 @@ function ObjInlineRV(){
 		}
 		if(!this.v)
 			this.objLyr.ele.style.visibility = 'hidden';
-	}
-}
-
-function ObjInlineFocus()
-{
-	// For groups, childArray has obj names. Focus the first obj in a group.
-	var chldObj = window[(this.childArray || [])[0]];
-	if (chldObj && typeof chldObj.focus == 'function')
-		chldObj.focus();
-	else
-	{
-		if (!is.bWCAG)
-			this.div.style.clip = 'auto';
-		var focusElem = triv$('input,select', this.div).get(0) || this.div;
-		setTimeout(function () {
-			if (focusElem) focusElem.focus();
-		}, focusActionDelay);
-	}
-}
-
-function ObjButtonUpdateGroup(objButton)
-{
-	if(this.isBtnGrp)
-	{
-		if(typeof(this.onSelChg) != 'undefined')
-			this.onSelChg();
-
-		for(var i = 0; i < this.childArray.length; i++)
-		{
-			if(this.childArray[i] != objButton.name )
-			{
-				var tempButton = eval(this.childArray[i]);
-				if( typeof(tempButton)!= 'undefined')
-					tempButton.setBaseState();
-			}
-		}
 	}
 }

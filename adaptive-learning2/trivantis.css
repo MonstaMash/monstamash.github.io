@@ -45,21 +45,3 @@ ol, ul    {margin: 0;
 	margin: 1cm;
 	margin: 0\0/;
 }
-
-div[id^="text"] h1, div[id^="text"] h2, div[id^="text"] h3, div[id^="text"] h4, div[id^="text"] h5, div[id^="text"] h6 {
-	padding: 0px;
-	font-weight: normal;
-	font-family: Arial, sans-serif;
-	font-size: 10pt;
-	margin-block-start: 0em;
-	margin-top: 0px;
-}
-
-#initClickBtn {
-	background : url(MediaPlayer/bigplay.png) no-repeat 0 0;
-}
-
-#initClickBtn:hover {
-	background: url(MediaPlayer/bigplay.png) no-repeat 0 -100px;
-}
-
