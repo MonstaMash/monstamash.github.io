@@ -179,9 +179,10 @@ function ObjMediaBuildMediaString(){
 
 	  this.mediaOptions = { 
 			enablePluginDebug: false, 
-			plugins: ['youtube','vimeo'], 
+			plugins: ['flash','youtube','vimeo'], 
 			type: '', 
 			pluginPath: 'MediaPlayer/', 
+			flashName: 'flashmediaelement.swf',
 			defaultVideoWidth: 480, 
 			defaultVideoHeight: 270, 
 			pluginWidth: -1, 
@@ -192,15 +193,16 @@ function ObjMediaBuildMediaString(){
 			// fires when a problem is detected
 			error: function (){ console.log( "error creating media element" );}};
 		
-	  var meFeatures = ['playpause', 'progress', 'current', 'duration', 'tracks', 'volume', 'fullscreen'];
-	  if (!window.HideMediaSpeedControl)
-		  meFeatures.push('speed');
+		
+
 
 		this.playerOptions = { 
 				enablePluginDebug: false, 
-				plugins: ['youtube','vimeo'], 
+				plugins: ['flash','youtube','vimeo'], 
 				type: '', 
 				pluginPath: 'MediaPlayer/', 
+				flashName: 'flashmediaelement.swf',
+				flashStreamer : "",
 				pluginWidth: -1, 
 				pluginHeight: -1, 
 				timerRate: 250, 
@@ -218,13 +220,7 @@ function ObjMediaBuildMediaString(){
 				startVolume: this.initVol,
 				loop: this.bLoop, 
 				enableAutosize: false, 
-				speeds: ['0.50', '0.75', '1.00', '1.25', '1.50', '1.75'],
-				defaultSpeed: sessionStorage.getItem('PlaybackSpeed') || '1.00',
-				speedUpdated: function (newSpeed) {
-					if (!window.ResetMediaPlaybackSpeed )
-						sessionStorage.setItem('PlaybackSpeed', newSpeed);
-				},
-				features: (!this.bControl) ? ['tracks'] : meFeatures, 
+				features: (!this.bControl)?['tracks']:['playpause','progress','current','duration','tracks','volume','fullscreen'], 
 				alwaysShowControls: this.bRollControl, 
 				hideVideoControlsOnLoad: this.bRollControl,
 				iPadUseNativeControls: false, 
@@ -264,39 +260,26 @@ function ObjMediaBuildMediaString(){
 					THIS.initEvent(mediaElem);
 
 					triv$(".mejs__overlay-button,.mejs__overlay-loading", THIS.div).css({
-						'display': 'none'
+                    'display': 'none'
 					});
 
+					
 					triv$(".mejs__overlay-button,.mejs__overlay-play", THIS.div).css({
-						'display': 'block'
-					});	
+                    'display': 'block'
+                	});			
 
-					triv$('.mejs__speed-button > button', THIS.div)
-						.focus(function () {
-							triv$('.mejs__speed-selector', THIS.div).css('visibility', 'visible');
-							triv$('.mejs__volume-slider', THIS.div).hide();
-						})
-						.blur(function () {
-							triv$('.mejs__speed-selector', THIS.div).css('visibility', '');
-						});
 
 					if(mediaElem.player){
 						
 						if(THIS.bHasCaption && mediaElem.player.captionsButton)
 						{
-							triv$(".mejs__container", THIS.div).css("background", THIS.bShowCaptionBox ? THIS.rgbClr : "transparent");
-							triv$(".mejs__captions-text", THIS.div).css("background", THIS.bShowCaptionBox ? "transparent" : THIS.rgbClr);
-							if (THIS.isAudio())
-								triv$(".mejs__captions-position,mejs__captions-position-hover", THIS.div).css({ 'bottom': ((THIS.ctrlH || 24) + 6) + 'px' });
-
-							mediaElem.player.captionsButton.addEventListener('click', function()
-							{
-								if ( THIS.mePlayer.player.selectedTrack == undefined )
+							mediaElem.player.captionsButton.addEventListener( 'click' , function () {
+								if( THIS.mePlayer.player.selectedTrack === null)
 								{
-									if ( typeof (getDisplayWindow().VarTrivSelCap) == "object" )
+									if(typeof (getDisplayWindow().VarTrivSelCap) == "object")	
 										VarTrivSelCap.set("none");
 								}
-								else
+								else (THIS.mePlayer.player.selectedTrack)
 								{
 									VarTrivSelCap.set(THIS.mePlayer.player.selectedTrack.srclang);
 								}
@@ -352,13 +335,6 @@ function ObjMediaBuildMediaString(){
 								this.fixForFullScreenPos = triv$(this.container).find('.mejs__controls').css('bottom');
 								triv$(this.container).find('.mejs__controls').css('bottom', '0px');
 							}
-							if (is.iOS) {		// LD-7452
-								var videoTag = triv$('video', this.container).get(0);
-								var track0Mode = videoTag && videoTag.textTracks ? videoTag.textTracks[0] : null;
-								if (track0Mode)
-									track0Mode.mode = mediaElem.player.selectedTrack ? 'showing' : 'hidden';		// CC for native fullscreen mode (selectedTrack is set if CC in currently ON)
-								//triv$('.mejs__captions-layer', this.container).css('visibility', 'hidden');		// CC in ME player. If you enable this line consider changing leavepictureinpicture event
-							}
 						};
 
 						mediaElem.player.exitFullScreen = function(){
@@ -367,64 +343,32 @@ function ObjMediaBuildMediaString(){
 								meExitFS.call(this);
 								THIS.isFullScreen = false;
 
-								var page = GetCurrentPageDiv();
-								if(page)
-								{
-									page.style.clip = "";
-									page.style.width = "";
-									page.style.height = "";	
-									page.style.left = THIS.normalLeft;
-									page.style.transform = THIS.transformScale;
-								}
+							var page = GetCurrentPageDiv();
+							if(page)
+							{
+								page.style.clip = "";
+								page.style.width = "";
+								page.style.height = "";	
+								page.style.left = THIS.normalLeft;
+								page.style.transform = THIS.transformScale;
+							}
 							
-								if(this.container)
-								{
-									var containerVar = triv$(this.container);
-									if(containerVar.length > 0)
-										containerVar[0].parentNode.style.zIndex = "";
-								}
+							if(this.container)
+							{
+								var containerVar = triv$(this.container);
+								if(containerVar.length > 0)
+									containerVar[0].parentNode.style.zIndex = "";
+							}
 								
+
 								if(!is.iOS && !is.safari){
 									triv$(this.container).find('.mejs__controls').css('bottom', this.fixForFullScreenPos);
 								}
 								rebuildLayout();
-								if(window.ReFlow)
-									ReFlow();
 							}
 						};
 
-						// LD-7452 If it's in native full screen and user clicks the native button for exit full screen...
-						var videoTag = triv$('video', THIS.div).get(0);
-						if (is.iOS && videoTag)
-						{
-							videoTag.addEventListener('webkitendfullscreen', function (e) {
-								// When full screen exits, set ME Player caption based on native caption setting.
-								// Then turn off the native full screen caption (otherwise you see both captions).
-								var track0Mode = videoTag.textTracks ? videoTag.textTracks[0] : null;
-								if (track0Mode)
-								{
-									triv$('.mejs__captions-layer', this.container).css('visibility', track0Mode.mode == 'showing' ? 'visible' : 'hidden');	// CC in ME player 
-									track0Mode.mode = 'hidden';
-                                }
-							});
-							// When entering PiP mode turn off native caption. 
-							videoTag.addEventListener('enterpictureinpicture', function (e) {
-								var track0Mode = videoTag.textTracks ? videoTag.textTracks[0] : null;
-								if (track0Mode)
-									track0Mode.mode = 'hidden';
-							});
-							// On exit PiP set native caption based on ME player CC mode.
-							videoTag.addEventListener('leavepictureinpicture', function (e) {
-								var track0Mode = videoTag.textTracks ? videoTag.textTracks[0] : null;
-								var captionDisplay = triv$('.mejs__captions-layer', THIS.div).css('display');
-								if (track0Mode)
-									track0Mode.mode = captionDisplay == 'none' ? 'hidden' : 'showing';		// CC for native fullscreen mode
-							});
-						}
-
 						var duration = null;
-						var mediaTag = triv$('video,audio', THIS.div).get(0);
-						THIS.__maxTime = 0;
 						mediaElem.addEventListener('timeupdate',function() {
 							if (duration !== THIS.duration) {
 								try{ 
@@ -437,14 +381,6 @@ function ObjMediaBuildMediaString(){
 										console.log("Error" + e);
 									}
 							}
-
-							if (mediaTag && THIS.bDisableSeek && !THIS.EnableSeek) {
-								// LD-7423 EnableSeek property is from user's action Run JS
-								if (mediaTag.currentTime - THIS.__maxTime > 1) 		// if user seeks ahead by more than 1 sec pass the max they've been
-									mediaTag.currentTime = THIS.__maxTime;
-								else 
-									THIS.__maxTime = Math.max(THIS.__maxTime, mediaTag.currentTime);
-							}
 						}, false);
 
 						mediaElem.addEventListener('play', function(e) {
@@ -456,8 +392,6 @@ function ObjMediaBuildMediaString(){
 						{
 							THIS.mePlayer.setVideoSize(this.w, this.h);
 						}
-						if (window.bScaleToWindow)
-							triv$('.mejs__time-rail .mejs__time-handle', THIS.div).hide();	// LD-7881
 					}
 
 					if(this.startLanguage === "en")
@@ -735,7 +669,7 @@ function ObjMediaActionTogglePlay( ) {
 }
 
 function ObjMediaActionToggleShow( ) {
-  if( ( is.ie && this.v ) || ( !is.ie && this.objLyr.isVisible() && !this.objLyr.bInTrans ) ) this.actionHide();
+  if( ( is.ie && this.v ) || ( !is.ie && this.objLyr.isVisible() && !this.objLyr.bInTrans ) ) {this.actionHide(); this.mediaPlayer.player.hideControls(false, true);}
   else this.actionShow();
 }
 
@@ -841,7 +775,6 @@ p.rebuildMediaPlayer = ObjMediaRebuildPlayer
 p.removeAllMediaListeners = ObjMediaRemoveListeners
 p.createMEPlayer = ObjMediaCreateMEPlayer
 p.getMePlayerCreator = ObjMediaGetMEPlayerCreator
-p.focus = ObjMediaFocus
 
 p.actionMute = function(){
 	if(this.mediaPlayer.setMuted)
@@ -1242,7 +1175,6 @@ function ObjLoadProps()
 			this.y = typeof(obj.y)!="undefined"?obj.y:this.y;
 			this.w = typeof(obj.w)!="undefined"?obj.w:this.w;
 			this.h = typeof(obj.h)!="undefined"?obj.h:this.h;
-			this.ctrlH = typeof (obj.ctrlH) != "undefined" ? obj.ctrlH : 24;
 			this.bBottom = (typeof(obj.bOffBottom)!="undefined"?obj.bOffBottom:this.bBottom);
 			
 			if(this.x > GetPageWidth() || ((this.x + this.w) < 0))
@@ -1398,29 +1330,15 @@ function ObjMediaGetSource()
 function ObjMediaGetTrackTime()
 {
 	var time = 0;
-	var strTime;
 	if(this.bMediaEle)
 	{
 		if(this.mediaPlayer.player)
-			time = this.mediaPlayer.player.proxy.getCurrentTime();
+			time = this.mediaPlayer.player.proxy.getCurrentTime().toFixed(0);
 		else if(this.mePlayer.player)
-			time = this.mePlayer.player.proxy.getCurrentTime();
-
-		strTime = new Date(time * 1000).toISOString().substr(11, 8)
-
-		if(strTime[0] === "0")
-		{
-			for(var count = 0; count <= 3; count++ )
-			{
-				if(strTime[0] === "0" || strTime[0] === ":")
-					strTime = strTime.substring(1);
-			}
-		}
-		
-		
+			time = this.mePlayer.player.proxy.getCurrentTime().toFixed(0);
 
 	}
-	return strTime;
+	return time;
 }
 
 function ObjMediaSetTrackTime(time)
@@ -1428,12 +1346,12 @@ function ObjMediaSetTrackTime(time)
 	if(this.bMediaEle)
 	{
 		if(this.mediaPlayer.setCurrentTime){
-			this.mediaPlayer.setCurrentTime(parseTimeString(time));
+			this.mediaPlayer.setCurrentTime(time);
 			this.mediaPlayer.player.setCurrentRail();
 		}
 		else if (this.mePlayer.setCurrentTime)
 		{
-			this.mePlayer.setCurrentTime(parseTimeString(time));
+			this.mePlayer.setCurrentTime(time);
 			this.mePlayer.player.setCurrentRail();	
 		}
 		
@@ -1632,8 +1550,6 @@ function ObjMediaRebuildPlayer(mediaElementToUse, mediaPlayerToUse, id){
 			this.mediaPlayer.loadTrack(0);
 			if(typeof (getDisplayWindow().VarTrivSelCap) == "object" && getDisplayWindow().VarTrivSelCap.getValue() == this.capLang[0])
 				this.mediaPlayer.setTrack(this.capLang[0]);
-			//Caption stuff hacked
-			triv$(".mejs__container", this.div).css("background", "#e9e9e9");
 		}
 		else
 			this.mediaPlayer.captionsButton.remove();
@@ -1654,9 +1570,6 @@ function ObjMediaRebuildPlayer(mediaElementToUse, mediaPlayerToUse, id){
 		 {
 				this.mePlayer.player.changeSkin("mejs-noskin");				
 		 }
-
-
-		 
 	}
 }
 
@@ -1690,11 +1603,4 @@ function isSupportedFormat(obj)
 			bIsMEJSPlayable = false;
 	
 	return bIsMEJSPlayable;
-}
-function ObjMediaFocus()
-{
-	var focusElem = this.div;
-	setTimeout(function () {
-		if (focusElem) focusElem.focus();
-	}, focusActionDelay);
 }

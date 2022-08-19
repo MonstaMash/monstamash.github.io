@@ -21,7 +21,7 @@ function ObjButton(n,a,x,y,w,h,v,z,d,cl,act,fb) {
   this.z = z
   this.obj = this.name+"Object"
   this.alreadyActioned = false;
-  window[this.obj] = this;
+  eval(this.obj+"=this")
   if ( d != 'undefined' && d!=null )
     this.divTag = d;
   else  
@@ -62,16 +62,14 @@ function ObjButton(n,a,x,y,w,h,v,z,d,cl,act,fb) {
   this.bFixedPosition = false;
   this.bBottom = fb?true:false;
   this.bInherited = false;
-  this.currentState = "normalState";
-  this.baseState = "normalState";
-  this.oldState = "normalState";
-  this.stateOpacity = {normalState : 100};
-  this.bDontAdjust = false;
-  this.bSelectedEnabled = false;
-  this.bVisitedEnabled = false;
-  this.bSelectedActivated = false;
-  this.bOverEnabled = false;
-  this.bDownEnabled = false;  
+  this.bHasSvgImageFill = false;
+  this.bHasSvgOverImageFill = false;
+  this.bHasSvgDownImageFill = false; 
+  this.bHasSvgDisbaleImageFill = false;
+  this.str_SvgImgFills = 'fill:none';
+  this.str_SvgDisabImgFills = 'fill:none';
+  this.str_SvgDownImgFills = 'fill:none';
+  this.str_SvgOverImgFills = 'fill:none';
   this.filterid = isSinglePagePlayerAvail() ? window.trivPlayer.activePage.nameNoEx + '_' + this.name : this.name;
 }
 
@@ -92,12 +90,13 @@ function ObjButtonActionStop( ) {
 }
 
 function ObjButtonActionShow(bFromActivate) {
-	var THIS = this;
-	//console.log('on show: ' + this.name);
-	if( !THIS.isVisible() )
-	{
-		THIS.onShow(bFromActivate);
-	}
+  var THIS = this;
+  if( !THIS.isVisible() )
+  {
+	THIS.onShow();
+	if(THIS.bIsWCAG && THIS.altName && !bFromActivate)
+		setTimeout( function() {THIS.div.innerHTML = THIS.div.innerHTML;} , 100);
+  }
 }
 
 function ObjButtonActionHide( ) {
@@ -212,128 +211,57 @@ p.setTextVal = ObjButtonSetTextValues
 p.setImgFillVal = ObjButtonImageFillVal
 p.buildSvgImgFill = ObjButtonBuildSvgImgFill
 p.buildText = ObjButtonBuildText
-p.buildSpanText = ObjButtonBuildSpanText
 p.refresh = ObjButtonRefresh
 p.getCSS = ObjButtonGetCSS
 p.setupObjLayer = ObjButtonSetupObjLayer
+p.setBase64Images = ObjButtonSetBase64Images
 p.rebuildDefs = ObjButtonRebuildDefs
 p.rv = ObjButtonRV
 p.setUniqueFillID = ObjButtonSetID
 p.initLineWeight = ObjInitLineWeight
-p.updateButtonGroup = ObjButtonUpdateGroup
-p.setBaseState = ObjButtonSetBaseState
-p.onSelVisited = ObjButtonOnSelVisited
-p.loadStateFromSes = ObjButtonLoadStateFromSession
-p.focus = ObjButtonFocus
 
-p.setState = function( state , bFromClick)
-{
-	this.baseState = state;
-
-	var btnObj$ = triv$('#' + this.name + 'btn', this.div);
-	var descByC$ = triv$('#descby', GetCurrentPageDiv());
-	if (descByC$.length < 1)
-	{
-		triv$(this.div.parentNode).append("<div id='descby' style='display:none'></div>");
-		descByC$ = triv$('#descby', GetCurrentPageDiv());
-	}
-	
-	//Store Buttons for Conditions
-	trivBtnTracking.SetRangeStatus(parseInt(this.name.replace('button' , '')), state ) ; 
-
-	if( state != 'selectedState')
-	{
-		this.oldState = this.baseState == 'normalState' ? state : this.baseState ;
-		if(typeof (bFromClick) == 'undefined')
-			this.bSelectedActivated = false;
-	}
-
-	var btnDB = this.name + 'btnDB';
-
-	if(!this.bUseSvgFile)
-	{
-
-		if (state == 'normalState')
-			this.change(this.imgOffSrc, false, null, this.stateOpacity.normalState, null, "normalState");
-		else if (state == 'disabledState')
-			this.change(this.imgDisabledSrc, false, null, this.stateOpacity.disabledState, null, "disabled");
-		else if (state == 'overState')
-			this.change(this.imgRollSrc, false, null, this.stateOpacity.overState, null, "overState"); 
-		else if (state == 'downState')
-			this.change(this.imgOnSrc, false, null, this.stateOpacity.downState, null, "downState"); 
-	 
-	}
-	else if (state == 'normalState')
-	{
-		this.setDisabled(false);
-	}
-	else if (state == 'disabledState')
-	{
-		this.setDisabled(true);
-	}	
-	else
-	{
-		if (triv$.inArray(state, ['normalState', 'disabledState', 'overState', 'downState']) < 0) // if not these states
-		{
-			// add aria-describedby
-			if (descByC$.children('#' + btnDB).length == 0)
-				descByC$.append("<p aria-hidden='true' id='" + btnDB + "' style='display:none'></p>");
-			btnDB$ = descByC$.children('#' + btnDB).first();
-			btnDB$.html(this.stateFills[state].screenRdr);
-			btnObj$.attr('aria-describedby', btnDB);
-        }
-
-		//custom states cannot be disabled 
-		this.bDisabled = false;
-		this.hasOnUp = true;
-		this.change(this.stateFills[state].stylePath, false , this.name+state+"Text", this.stateOpacity[state], this.stateImgFills[state].style, state);
-	}
-
-	if (triv$.inArray(state, ['normalState', 'disabledState', 'overState', 'downState']) > -1) // if one of these states
-	{
-		// remove aria-describedby
-		if (btnObj$.attr('aria-describedby') == btnDB) {
-			btnObj$.removeAttr('aria-describedby')
-			descByC$.children('#' + btnDB).remove();
-		}
-	}
-}
-
-p.updateFillSize = function ( btnState ){
+p.updateFillSize = function ( pictureId ){
 	if( is.svg && this.str_SvgMapPath )
 	{
-		if( !btnState )
+		if( !pictureId )
 		{
-			for (var i=0;i < this.btnStates.length;i++)
-			{
-				this.updateFillSize( this.btnStates[i] );
-			}
+			this.updateFillSize( "Picture_"+this.fuID );
+			this.updateFillSize( "Picture_"+this.fuID+ "_over" );
+			this.updateFillSize( "Picture_"+this.fuID +"_down" );
+			this.updateFillSize( "Picture_"+this.fuID + "_disabled" );
 		}
 		else
 		{
-			var pictureId = "Picture_"+this.fuID+(btnState=='normalState'?'':'_'+btnState);
-			
+			var state;
+
+			if (pictureId.lastIndexOf("_over") == (pictureId.length - String("_over").length) )
+				state = "Over";
+			else if (pictureId.lastIndexOf("_down") == (pictureId.length - String("_down").length) )
+				state = "Down";
+			else if (pictureId.lastIndexOf("_disabled") == (pictureId.length - String("_disabled").length))
+				state = "Disabled"
+			else
+				state = "Normal"
+		
 			//calculate the proper fill sizes.
 			var tempDiv = getDisplayDocument().createElement( 'DIV' );
-			tempDiv.style.visibility = 'hidden';
 			getDisplayDocument().body.appendChild( tempDiv );
 			tempDiv.innerHTML = '<svg><g><path d="' + this.str_SvgMapPath + '"></path></g></svg>';
 			this.pathBBox = tempDiv.getElementsByTagNameNS('http://www.w3.org/2000/svg','path')[0].getBBox();
 			tempDiv.parentNode.removeChild(tempDiv);
 		
 			var adjustPictureFill = getDisplayDocument().getElementById (pictureId);
-			if(adjustPictureFill && this.stateFills[btnState].stylePath.indexOf("nonzero")==-1) 
+			if(adjustPictureFill && this["str_SvgStyle" + state + "_Url"].indexOf("nonzero")==-1) 
 			{
-				var adjustBy = this.bDontAdjust ? parseInt(this.lineWeight == 1 ? this.lineWeight * 2 : this.lineWeight   ) : 0; 
-				adjustPictureFill.setAttribute('width' , this.pathBBox.width + adjustBy);
-				adjustPictureFill.setAttribute('height' , this.pathBBox.height + adjustBy);
-				adjustPictureFill.querySelector('image').setAttribute('width' , this.pathBBox.width + adjustBy);
-				adjustPictureFill.querySelector('image').setAttribute('height' , this.pathBBox.height + adjustBy);
-				adjustPictureFill.querySelector('image').setAttribute('x' , this.bDontAdjust ? 0 : this.lineWeight / 2);
-				adjustPictureFill.querySelector('image').setAttribute('y' , this.bDontAdjust ? 0 : this.lineWeight / 2);
-				if(this.stateImgFills[btnState].B64)
+				adjustPictureFill.setAttribute('width' , this.pathBBox.width);
+				adjustPictureFill.setAttribute('height' , this.pathBBox.height);
+				adjustPictureFill.querySelector('image').setAttribute('width' , this.pathBBox.width);
+				adjustPictureFill.querySelector('image').setAttribute('height' , this.pathBBox.height);
+				adjustPictureFill.querySelector('image').setAttribute('x' , this.lineWeight / 2);
+				adjustPictureFill.querySelector('image').setAttribute('y' , this.lineWeight / 2);
+				if(this["base64" + state])
 				{
-					adjustPictureFill.querySelector('image').setAttributeNS('http://www.w3.org/1999/xlink','href', this.stateImgFills[btnState].B64);
+					adjustPictureFill.querySelector('image').setAttributeNS('http://www.w3.org/1999/xlink','href',this["base64" + state]);
 				}
 			}
 		}
@@ -341,37 +269,33 @@ p.updateFillSize = function ( btnState ){
 };
 }
 
-function ObjButtonSetStateOpacity( stateOpacity )
+function ObjButtonSetStateOpacity( imgOff, imgOn, imgRoll, imgDisabled )
 {
-	// custStates
-	this.stateOpacity = stateOpacity;
+  if(imgOff >=0) this.imgOffOpacity = imgOff;
+  if(imgOn >=0) this.imgOnOpacity = imgOn;
+  if(imgRoll >=0) this.imgRollOpacity = imgRoll;
+  if(imgDisabled >=0) this.imgDisabledOpacity = imgDisabled;
 }
 
 function ObjButtonSetImages(imgOff,imgOn,imgRoll,imgDis, dir) {
-  if (imgOff && imgOff.normalState)
-  {
-	// custStates
-	// text buttons work this way this.stateImgs = {'normalState':'images/normal.png','overState':'images/over.png',...}
-	this.stateImg = imgOff; 
-  }
-  else
-  {
-	  // support old ObjButton objects
-	  if (!dir) dir = ''
-	  this.imgOffSrc = imgOff?dir+imgOff:''
-	  this.imgSrc = imgOff?dir+imgOff:'' //For Transitions
-	  this.imgOnSrc = imgOn?dir+imgOn:''
-	  this.imgRollSrc = imgRoll?dir+imgRoll:''
-	  this.imgDisabledSrc = imgDis?dir+imgDis:''
-  }
+  if (!dir) dir = ''
+  this.imgOffSrc = imgOff?dir+imgOff:''
+  this.imgSrc = imgOff?dir+imgOff:'' //For Transitions
+  this.imgOnSrc = imgOn?dir+imgOn:''
+  this.imgRollSrc = imgRoll?dir+imgRoll:''
+  this.imgDisabledSrc = imgDis?dir+imgDis:''
 }
 
-function ObjButtonSetFills( stateFills ) {
-	
-	// custStates {"custState_2770":{"fill":"","style":"stroke:#0963B1; stroke-width:1; stroke-linejoin:round;stroke-dasharray: none; fill:#FFD966;\""},"disabledState": ... }
-	this.stateFills = stateFills;
-	this.btnStates = Object.keys(stateFills);
-	
+function ObjButtonSetFills( strNormal, strOver, strDown, strDisable ,strNormal_url, strOver_url, strDown_url, strDisable_url) {
+  this.str_SvgStyle = strNormal;
+  this.str_SvgStyleOver = strOver; 
+  this.str_SvgStyleDown = strDown;
+  this.str_SvgStyleDisabled = strDisable;
+  
+  this.str_SvgStyleNormal_Url  = strNormal_url;
+  this.str_SvgStyleOver_Url = strOver_url; 
+  this.str_SvgStyleDown_Url  = strDown_url;
+  this.str_SvgStyleDisabled_Url  = strDisable_url;
 }
 function ObjButtonSetDisabledImage( imgDis, dir )
 {
@@ -383,41 +307,32 @@ function ObjButtonSetDisable( bSet )
 {
 	this.bDisabled = bSet;
 	this.hasOnUp = !bSet;
-	this.objLyr.ele.style.cursor = 'default';
-
 	
 	if(!is.svg || !this.bUseSvgFile)
 	{
 		if (this.imgDisabledSrc && bSet) 
-			this.change(this.imgDisabledSrc, false, null, this.stateOpacity.disabledState, null, "disabledState")
+			this.change(this.imgDisabledSrc, false, null, this.imgDisabledOpacity, null)
 		else if (!this.imgDisabledSrc && bSet) 
 		{
-			this.change(this.imgOffSrc, false, null, this.stateOpacity.normalState, null, "normalState");
+			this.change(this.imgOffSrc, false, null, this.imgOffOpacity, null);
 		}
 		else if(this.imgOffSrc && !bSet)
-			this.change(this.imgOffSrc, false, null, this.stateOpacity.normalState, null, "normalState");
+			this.change(this.imgOffSrc, false, null, this.imgOffOpacity, null);
 	}
 	else
 	{
- 		if (this.stateFills['disabledState'].stylePath && bSet) 
-			this.change(this.stateFills['disabledState'].stylePath, false , this.name+'disabledState'+"Text", this.stateOpacity.disabledState, this.stateImgFills['disabledState'].style, "disabledState");
-		else if (!this.stateFills['disabledState'].stylePath && bSet) 
+		if (this.str_SvgStyleDisabled_Url && bSet) 
+			this.change(this.str_SvgStyleDisabled_Url, false , this.str_TxtFill_Disabled, this.imgDisabledOpacity, this.str_SvgDisabImgFills)
+		else if (!this.str_SvgStyleDisabled_Url && bSet) 
 		{
-			this.change(this.stateFills['normalState'].stylePath, false , this.name+"Text", this.stateOpacity.normalState, this.stateImgFills['normalState'].style, "normalState");
+			this.change(this.str_SvgStyleNormal_Url, false , this.str_TxtFill, this.imgOffOpacity, this.str_SvgImgFills);
 		}
-		else if(this.stateFills['normalState'].stylePath && !bSet)
-			this.change(this.stateFills['normalState'].stylePath, false , this.name+"Text", this.stateOpacity.normalState, this.stateImgFills['normalState'].style, "normalState");
+		else if(this.str_SvgStyleNormal_Url && !bSet)
+			this.change(this.str_SvgStyleNormal_Url, false, this.str_TxtFill, this.imgOffOpacity, this.str_SvgImgFills);
 	}
 }
 
 function ObjButtonBuild() {
-
-	if (this.text) { // LD-7765 retain spacing LD-7873 allow for text wrap
-		var pre = /^([\s]+)/.exec(this.text);
-		var post = /([\s]+)$/.exec(this.text);
-		this.text = (pre ? pre[0].replace(/\s/g, "&nbsp;") : "") + this.text.trim() + (post ? post[0].replace(/\s/g, "&nbsp;") : "");
-	}  
-
   ObjDegradeEffects(this , true);	//echo LD-768 : Check if we need to gracefully degrade effects
 
   this.loadProps();
@@ -536,11 +451,16 @@ function ObjButtonBuild() {
 
   this.div += '<' + this.divTag + ' id="'+this.name+'" ';
 		
-	//LD-6288 No longer rely on title and alt for accesibility aria-label handles it
-    this.div += 'title="" alt="" ';
+	//LD-6288 No longer relie on title and alt for accesibility aria-label handles it
+  // if( this.altName ) 
+	// this.div += 'alt="'+this.altName+'" ';
+  // else if(is.ieAny)
+	// this.div += 'title="" ';
+  // else
+	  this.div += 'title="" alt="" ';
 
-  //if(this.bIsWCAG && this.altName)
-	//	this.div += 'aria-live="polite"';
+  if(this.bIsWCAG && this.altName)
+		this.div += 'aria-live="polite"';
 
   //Applies SVG shadow to images on non ie8 and ie9 browsers
   if(this.hasOuterShadow && is.svg)
@@ -572,19 +492,17 @@ function ObjButtonBuild() {
 	this.divInt += '<img src="images/warn.jpg" onClick="alert(\'' + this.bUnsuppStr + '\')" style="position:absolute;cursor:pointer;width:16px;height:16px;z-index:' + (this.z + 1) + '" />';
   }
   this.divInt += '<button type="button" name="'+this.name+'btn" id="'+this.name+'btn"'
-  if (this.altName && !this.text)
-	this.divInt += 'title="" aria-label="' + this.altName + '"';
-  //this.divInt += ' aria-label=""'
+  if(this.altName) this.divInt +='title="'+'"aria-label="'+this.altName+'"'
+  this.divInt +=' aria-label=""'
   if(is.ie8 || is.ie9)
 	this.divInt += ' style="'+ie9PosCorrect+IERotation+'"';
  
-	this.divInt+=' onclick="' + this.name   + 'Object.onSelVisited();'
-	if(this.hasAct && !this.bHasClickMap)
-		this.divInt += ' if( ' + this.name + 'Object.hasOnUp ) ' + this.name + 'Object.onUp()'
+ if(this.hasAct && !this.bHasClickMap)
+	this.divInt+=' onclick="if( ' + this.name + 'Object.hasOnUp ) ' + this.name + 'Object.onUp()"'
 		
 
-  this.divInt += '">'
-  if( ((!this.hasOuterShadow) && (!is.svg || !this.bUseSvgFile)) || (!is.svg && !this.bUseSvgFile)  )
+  this.divInt += '>'
+  if( ((!this.hasOuterShadow || is.ie9 ) && (!is.svg || !this.bUseSvgFile)) || (!is.svg && !this.bUseSvgFile)  )
   {
 	this.divInt += '<img name="'+this.name+'Img" id="'+this.name+'Img" src="'+(!this.bOffPage?this.imgOffSrc:'')+'"';
 	if(this.altName)
@@ -610,9 +528,8 @@ function ObjButtonBuild() {
   {
 	this.divInt += addClickMap(adjustedWidth, adjustedHeight, xOffset, yOffset, this);
   }
-
-	this.div = CreateHTMLElementFromString(this.div);
-
+  
+  this.div = CreateHTMLElementFromString(this.div);
 }
 
 function ObjButtonBuildSvg(){
@@ -655,6 +572,9 @@ function ObjButtonBuildSvg(){
 		}
 	}
 	
+	
+	
+	
 	if(this.hasReflection)
 	{	
 		var strIndex = this.css.indexOf("z-index:");
@@ -667,9 +587,9 @@ function ObjButtonBuildSvg(){
 		var bTranslate = false;
 		if(this.lineWeight % 2 != 0)
 			bTranslate = true;
-		var pathSource = "<path " + (bTranslate? "transform=\"translate(0.5 0.5)\"" :"")+ "d='"+this.str_SvgMapPath +"'  style=\"" + this.stateFills['normalState'].stylePath;;
-		var imgFSource = "<path " + (bTranslate? "transform=\"translate(0.5 0.5)\"" :"")+ "d='"+this.str_SvgMapPath +"'  style=\"" + (this.stateImgFills['normalState'].style ? this.stateImgFills['normalState'].style : "fill:none") + ";\"";
-		var textSource = this.buildSpanText(this.name + 'ReflectionDiv');
+		var pathSource = "<path " + (bTranslate? "transform=\"translate(0.5 0.5)\"" :"")+ "d='"+this.str_SvgMapPath +"'  style=\"" + this.str_SvgStyleNormal_Url;;
+		var textSource = "<path " + (bTranslate? "transform=\"translate(0.5 0.5)\"" :"")+ "d='"+this.str_SvgMapPath +"'  style=\"" + this.str_TxtFill + ";\"";
+		var imgFSource = "<path " + (bTranslate? "transform=\"translate(0.5 0.5)\"" :"")+ "d='"+this.str_SvgMapPath +"'  style=\"" + (typeof(this.str_SvgImgFills)!='undefined' ? this.str_SvgImgFills : "fill:none") + ";\"";
 
 		this.divReflect = addReflection(this.name, (!this.bOffPage?pathSource:''), this.reflectedImageX, this.reflectedImageY, this.reflectedImageWidth, 
 										this.reflectedImageHeight, this.r, this.reflectedImageOffset, this.reflectedImageFadeRate, this.v, this.vf, this.hf, 
@@ -684,7 +604,7 @@ function ObjButtonBuildSvg(){
 	
 	if(this.hasOuterShadow)
 	{			
-		this.divInt += '<svg tabindex="-1" focusable="false" aria-hidden="true" width="' + adjustedWidth + 'px" height="' + adjustedHeight + 'px"'
+		this.divInt += '<svg tabindex="-1" focusable="false" aria-label="" width="' + adjustedWidth + 'px" height="' + adjustedHeight + 'px"'
 		
 		this.divInt += addSvgShadowFilter(this.name, this.w, this.h, this.outerShadowDirection, this.outerShadowDepth, this.outerShadowOpacity, this.shadowRed, this.shadowGreen, this.shadowBlue, this.outerShadowBlurRadius, this.shadowType, this.lineWeight); 
 		
@@ -701,15 +621,10 @@ function ObjButtonBuildSvg(){
 		if(xOffset <= 0 || yOffset <= 0)
 		{	
 			this.divInt += "<defs>";
-			
-			// custStates adding all styles
-			for (var i=0;i < this.btnStates.length;i++)
-			{
-				this.divInt += this.stateFills[this.btnStates[i]].fillInfo; 
-			}
+			this.divInt +=   this.str_SvgStyle + this.str_SvgStyleOver + this.str_SvgStyleDown +  this.str_SvgStyleDisabled;
 		
 			this.divInt += "</defs>";
-			this.divInt += "<path id='" +this.name +"path' d='"+this.str_SvgMapPath +"'  style=\"" + this.stateFills['normalState'].stylePath;
+			this.divInt += "<path id='" +this.name +"path' d='"+this.str_SvgMapPath +"'  style=\"" + this.str_SvgStyleNormal_Url;
 			
 			this.divInt+= 'x = "';
 			
@@ -737,16 +652,10 @@ function ObjButtonBuildSvg(){
 		else
 		{
 		this.divInt += "<defs>";
-
-		// custStates adding all styles
-		for (var i=0;i < this.btnStates.length;i++)
-		{
-			this.divInt += this.stateFills[this.btnStates[i]].fillInfo; 
-		}
-		
+		this.divInt +=   this.str_SvgStyle + this.str_SvgStyleOver + this.str_SvgStyleDown +  this.str_SvgStyleDisabled;
 		this.divInt += "</defs>";
 		
-		this.divInt += "<path id='" +this.name +"path' d='"+this.str_SvgMapPath +"'  style=\"" + this.stateFills['normalState'].stylePath;
+		this.divInt += "<path id='" +this.name +"path' d='"+this.str_SvgMapPath +"'  style=\"" + this.str_SvgStyleNormal_Url;
 
 			this.divInt += 'x = "0" y = "0" height = "' + this.h + 'px" width = "' + this.w + 'px" filter="url(#'+ this.filterid + 'Shadow)"'
 			
@@ -757,56 +666,23 @@ function ObjButtonBuildSvg(){
 		}	
 	}
 	else{	
-		this.divInt += '<svg tabindex="-1" focusable="false" aria-hidden="true" width= "100%" height="100%" >\n'
+		this.divInt += '<svg tabindex="-1" focusable="false" aria-label="" width= "100%" height="100%" >\n'
 		
 		this.divInt += "<defs>";
-		// custStates adding all styles
-		for (var i=0;i < this.btnStates.length;i++)
-		{
-			this.divInt += this.stateFills[this.btnStates[i]].fillInfo; 
-		}
+		this.divInt +=   this.str_SvgStyle + this.str_SvgStyleOver + this.str_SvgStyleDown +  this.str_SvgStyleDisabled;
 		this.divInt += "</defs>";
-		this.divInt += "<path " + ((this.lineWeight==0)?"":"transform=\"translate(0.5 0.5)\" " ) + "id='" +this.name +"path' d='"+this.str_SvgMapPath +"'  style=\"" + this.stateFills['normalState'].stylePath;
+		this.divInt += "<path " + ((this.lineWeight==0)?"":"transform=\"translate(0.5 0.5)\" " ) + "id='" +this.name +"path' d='"+this.str_SvgMapPath +"'  style=\"" + this.str_SvgStyleNormal_Url;
 		this.divInt += '/>\n';	
 	}
 	
 	this.divInt += this.buildSvgImgFill(mapOffsetX , mapOffsetY);
-	//this.divInt += this.buildText(mapOffsetX , mapOffsetY);
+	this.divInt += this.buildText(mapOffsetX , mapOffsetY);
 	
 	this.divInt += '</svg>\n'
 		
 	this.bSVGMap = true;	
-	
-	this.divInt += this.buildSpanText(this.name , mapOffsetX , mapOffsetY );
-
-	
-
-
+		
 	this.divInt += '</button>'
-}
-
-function ObjButtonBuildSpanText(name, mapOffsetX, mapOffsetY)
-{
-	var txtReturn = "<div ";
-
-	if (this.altName && !this.text)
-		txtReturn += 'aria-hidden=\"true\" ';
-
-	txtReturn += ' class="' + this.name + 'Text" id="' + name + 'TextDiv" ';
-	txtReturn += 'style= "' 
-
-	if(mapOffsetX != 0 || mapOffsetY != 0 )
-	 txtReturn += "left:"+ mapOffsetX + "px; top:" +mapOffsetY + "px; ";
-	txtReturn += '"';
-
-	txtReturn += '>'
-	//txtReturn += '<span aria-hidden=\"true\" class="' + this.name +'Text" id="'+ name +'TextSpan"> ';
-	txtReturn += '<span class="' + this.name + 'Text" id="' + name + 'TextSpan"> ';
-	txtReturn += typeof(this.text)!='undefined' ? this.text : "";
-	txtReturn += "</span>";
-	txtReturn += "</div>";
-	return txtReturn;
-
 }
 
 function ObjButtonBuildText(mapOffsetX , mapOffsetY)
@@ -852,7 +728,7 @@ function ObjButtonBuildText(mapOffsetX , mapOffsetY)
 	txtReturn += "</defs>";
 	
 	
-	txtReturn += "<path id='" +this.name +"text' d='"+this.str_SvgMapPath +"'  style=\"" + this.name+"Text" + ";\"" + " transform='translate( "+ mapOffsetX + ", " +mapOffsetY + "  )' ";
+	txtReturn += "<path id='" +this.name +"text' d='"+this.str_SvgMapPath +"'  style=\"" + this.str_TxtFill + ";\"" + " transform='translate( "+ mapOffsetX + ", " +mapOffsetY + "  )' ";
 	txtReturn += '/>\n';	
 	
 	return txtReturn;
@@ -875,7 +751,7 @@ function ObjButtonBuildSvgImgFill( mapOffsetX , mapOffsetY )
 	yOffset = parseFloat(yOffset.toFixed(5));
 
 	var adjustedWidth = this.w;
-	var adjustedHeight = this.h
+	var adjustedHeight = this.h; 
 
 	if(this.hasOuterShadow)
 	{
@@ -883,20 +759,35 @@ function ObjButtonBuildSvgImgFill( mapOffsetX , mapOffsetY )
 		adjustedHeight = Math.ceil(this.h + (1 * Math.abs(yOffset))  + this.outerShadowBlurRadius); 
 	}
 	
-	for (var i=0;i < this.btnStates.length;i++)
-	{
-		var btnState = this.btnStates[i];
+	if(this.bHasSvgImageFill){
+	txtReturn += "<pattern id=\"Picture_" + this.fuID + "\" x=\"0\" y=\"0\" width=\"" + adjustedWidth + "\" height=\""+ adjustedHeight +  "\" patternUnits=\"userSpaceOnUse\">\n";
+	txtReturn += "<image aria-hidden=\"true\" xlink:href=\""+ this.str_SvgImgFillB64Img + "\" x=\"0\" y=\"0\" width=\"" + adjustedWidth + "\" height=\""+adjustedHeight +  "\" preserveAspectRatio=\"none\">\n";
+	txtReturn += "</pattern>\n";
+	}
 
-		if(this.stateImgFills[btnState].hasFill)
-		{
-			txtReturn += "<pattern id=\"Picture_" + this.fuID + (btnState=='normalState'?'':'_'+btnState)+"\" x=\"0\" y=\"0\" width=\"" + adjustedWidth + "\" height=\""+ adjustedHeight +  "\" patternUnits=\"userSpaceOnUse\">\n";
-			txtReturn += "<image aria-hidden=\"true\" xlink:href=\""+ this.stateImgFills[btnState].B64 + "\" x=\"0\" y=\"0\" width=\"" + adjustedWidth + "\" height=\""+adjustedHeight +  "\" preserveAspectRatio=\"none\">\n";
-			txtReturn += "</pattern>\n";
-		}
+	if(this.bHasSvgOverImageFill){
+	txtReturn += "<pattern id=\"Picture_" + this.fuID + "_over\" x=\"0\" y=\"0\" width=\"" + adjustedWidth + "\" height=\""+ adjustedHeight +  "\" patternUnits=\"userSpaceOnUse\">\n";
+	txtReturn += "<image xlink:href=\""+ this.str_SvgOverImgFillB64Img + "\" x=\"0\" y=\"0\" width=\"" + adjustedWidth + "\" height=\""+adjustedHeight +  "\" preserveAspectRatio=\"none\">\n";
+	txtReturn += "</pattern>\n";
+	}
+
+	if(this.bHasSvgDownImageFill){
+	txtReturn += "<pattern id=\"Picture_" + this.fuID + "_down\" x=\"0\" y=\"0\" width=\"" + adjustedWidth + "\" height=\""+ adjustedHeight +  "\" patternUnits=\"userSpaceOnUse\">\n";
+	txtReturn += "<image aria-hidden=\"true\" xlink:href=\""+ this.str_SvgDownImgFillB64Img + "\" x=\"0\" y=\"0\" width=\"" + adjustedWidth + "\" height=\""+adjustedHeight +  "\" preserveAspectRatio=\"none\">\n";
+	txtReturn += "</pattern>\n";
 	}
 	
+	if(this.bHasSvgDisbaleImageFill){
+	txtReturn += "<pattern id=\"Picture_" + this.fuID + "_disabled\" x=\"0\" y=\"0\" width=\"" + adjustedWidth + "\" height=\""+ adjustedHeight +  "\" patternUnits=\"userSpaceOnUse\">\n";
+	txtReturn += "<image aria-hidden=\"true\" xlink:href=\""+ this.str_SvgImgFillB64Img + "\" x=\"0\" y=\"0\" width=\"" + adjustedWidth + "\" height=\""+adjustedHeight +  "\" preserveAspectRatio=\"none\">\n";
+	txtReturn += "</pattern>\n";
+	}
+	
+	
 	txtReturn += "</defs>";
-	txtReturn += "<path id='" +this.name +"imgF' d='"+this.str_SvgMapPath +"'  style=\"" + (this.stateImgFills['normalState'].style ? this.stateImgFills['normalState'].style : "fill:none") + ";\"" + " transform='translate( "+ mapOffsetX + ", " +mapOffsetY + "  )' ";
+	
+	
+	txtReturn += "<path id='" +this.name +"imgF' d='"+this.str_SvgMapPath +"'  style=\"" + (typeof(this.str_SvgImgFills)!='undefined' ? this.str_SvgImgFills : "fill:none") + ";\"" + " transform='translate( "+ mapOffsetX + ", " +mapOffsetY + "  )' ";
 	txtReturn += '/>\n';	
 	
 	return txtReturn;
@@ -982,12 +873,12 @@ function ObjButtonDown(e) {
   {
 	  if (this.selected) {
 		this.selected = false
-		if (this.imgOnSrc && this.bDownEnabled) this.change(this.imgOnSrc, false, null, this.stateOpacity.downState, null, "downState")
+		if (this.imgOnSrc) this.change(this.imgOnSrc, false, null, this.imgOnOpacity, null)
 		this.onDeselect()
 	  }
 	  else {
 		if (this.checkbox) this.selected = true
-		if (this.imgOnSrc && this.bDownEnabled) this.change(this.imgOnSrc, false, null, this.stateOpacity.downState, null, "downState")
+		if (this.imgOnSrc) this.change(this.imgOnSrc, false, null, this.imgOnOpacity, null)
 		this.onSelect()
 	  }
   }
@@ -995,12 +886,12 @@ function ObjButtonDown(e) {
   {
 	  if (this.selected) {
 		this.selected = false
-		if (this.stateFills['downState'].stylePath && this.bDownEnabled) this.change(this.stateFills['downState'].stylePath, false , this.name+"downState"+"Text", this.stateOpacity.downState, this.stateImgFills['downState'].style, "downState")
+		if (this.str_SvgStyleDown_Url) this.change(this.str_SvgStyleDown_Url, false , this.str_TxtFill_Down, this.imgOnOpacity, this.str_SvgDownImgFills)
 		this.onDeselect()
 	  }
 	  else {
 		if (this.checkbox) this.selected = true
-		if (this.stateFills['downState'].stylePath && this.bDownEnabled) this.change(this.stateFills['downState'].stylePath, false, this.name+"downState"+"Text", this.stateOpacity.downState, this.stateImgFills['downState'].style, "downState")
+		if (this.str_SvgStyleDown_Url) this.change(this.str_SvgStyleDown_Url, false, this.str_TxtFill_Down, this.imgOnOpacity, this.str_SvgDownImgFills)
 		this.onSelect()
 	  }
   }
@@ -1017,17 +908,14 @@ function ObjButtonUp(e) {
   
   if(!is.svg || !this.bUseSvgFile){
 	   if (!this.selected) {
-		if (this.imgRollSrc) this.change(this.imgRollSrc, false, null, this.stateOpacity.overState,null, "overState")
-		else if (this.imgOnSrc) this.change(this.imgOffSrc, false, null, this.stateOpacity.downState, null, "downState")
+		if (this.imgRollSrc) this.change(this.imgRollSrc, false, null, this.imgRollOpacity,null)
+		else if (this.imgOnSrc) this.change(this.imgOffSrc, false, null, this.imgOnOpacity, null)
 	  }
   }
   else{
 	  if (!this.selected) {
-		if (this.stateFills['overState'].stylePath) this.change(this.stateFills['overState'].stylePath, false , this.name+"overState"+"Text", this.stateOpacity.overState, this.stateImgFills['overState'].style, "overState")
-		else if (this.stateFills['downState'].stylePath)
-		{
-			this.change(this.stateFills[this.baseState].stylePath, false , this.name+this.baseState+"Text", this.stateOpacity[this.baseState], this.stateImgFills[this.baseState].style, this.baseState);
-		} 
+		if (this.str_SvgStyleOver_Url) this.change(this.str_SvgStyleOver_Url, false , this.str_TxtFill_Over, this.imgRollOpacity, this.str_SvgOverImgFills)
+		else if (this.str_SvgStyleDown_Url) this.change(this.str_SvgStyleNormal_Url, false, this.str_TxtFill, this.imgOnOpacity, this.str_SvgImgFills)
 	  }
   }
   if( !is.ieMac && !is.nsMac && e && e.button==2 )
@@ -1039,14 +927,10 @@ function ObjButtonUp(e) {
       setTimeout( "getDisplayDocument().oncontextmenu = ocmOrig", 100)
     }
   }
-
-  if(!this.bIsWCAG)
-  	this.onSelVisited();
   
   //echo LD-958 : onUp is for left mouse button events only. 
   if(this.hasAct && this.hasOnUp && (e.button == 0 || e.button == 1))
 	this.onUp();
-
 }
 
 function ObjButtonOver() {
@@ -1054,15 +938,13 @@ function ObjButtonOver() {
   if( this.bDisabled ) return;
   if(!is.svg || !this.bUseSvgFile)
   { 
-	if(this.imgRollSrc && !this.selected && this.bOverEnabled)
-	{
-		this.change(this.imgRollSrc, false, null, this.stateOpacity.overState, null, "overState"); 
-	} 
+	if(this.imgRollSrc && !this.selected)
+		this.change(this.imgRollSrc, false, null, this.imgRollOpacity, null); 
   }
   else
   {
-	  if(this.stateFills['overState'].stylePath && !this.selected && this.bOverEnabled) 
-		  this.change(this.stateFills['overState'].stylePath, false , this.name+"overState"+"Text", this.stateOpacity.overState , this.stateImgFills['overState'].style, "overState");
+	  if(this.str_SvgStyleOver_Url && !this.selected) 
+		  this.change(this.str_SvgStyleOver_Url, false , this.str_TxtFill_Over, this.imgRollOpacity , this.str_SvgOverImgFills);
   }
  
   this.objLyr.ele.style.cursor = 'pointer';
@@ -1075,17 +957,13 @@ function ObjButtonOut() {
   if( this.bDisabled ) return;
   if(!is.svg || !this.bUseSvgFile)
   {
-	  if(this.imgOffSrc && !this.selected) 
-	  {
-		this.change(this.imgOffSrc, false, null, this.stateOpacity.normalState, null, "normalState"); 	
-	  }  
+	  if(this.imgRollSrc && !this.selected) 
+		  this.change(this.imgOffSrc, false, null, this.imgOffOpacity, null);
   }
  else
  {
-	 if(this.stateFills['normalState'].stylePath && !this.selected) 
-	 {
-		this.change(this.stateFills[this.baseState].stylePath, false , this.name+this.baseState+"Text", this.stateOpacity[this.baseState], this.stateImgFills[this.baseState].style, this.baseState);
-	} 
+	 if(this.str_SvgStyleNormal_Url && !this.selected) 
+		 this.change(this.str_SvgStyleNormal_Url, false , this.str_TxtFill, this.imgOffOpacity, this.str_SvgImgFills);
  }
   
   this.objLyr.ele.style.cursor = 'default';
@@ -1093,18 +971,17 @@ function ObjButtonOut() {
   this.onOut()
 }
 
-function ObjButtonChange(img, bResp , text, stateOpacity, imgFill, state) {
+function ObjButtonChange(img, bResp , text, stateOpacity, imgFill) {
   
   var pagePlayer = getDisplayWindow().pagePlayer;
-  this.currentState = state;
-  
-  text = (text ? text.replace('normalState','') : text); // normalState not specified in css class name 
-  
   if (pagePlayer)
   {
-	  var pageName = pagePlayer.activePage.name.trim().replace(".html", "");
-      if (imgFill && imgFill.indexOf('#Picture_') > -1 && imgFill.indexOf("_"+pageName) < 0)
-		  return;		// LD-7091 catching page mismatch
+      var pageName = pagePlayer.activePage.name.replace(".html","");
+      if (imgFill && imgFill.indexOf('#Picture_') > -1 && imgFill.indexOf("_"+pageName+"_") < 0)
+      {
+          console.log('catching page mismatch (LD-7091)');
+          return;
+      }
   }  
   
   if(typeof(bResp) == "undefined")
@@ -1113,7 +990,7 @@ function ObjButtonChange(img, bResp , text, stateOpacity, imgFill, state) {
   var opacity = null;
   
   if(typeof(stateOpacity) == 'undefined' || !stateOpacity)
-	  opacity = this.stateOpacity.normalState;
+	  opacity = this.imgOffOpacity;
   else
 	  opacity = stateOpacity;
   
@@ -1147,16 +1024,16 @@ function ObjButtonChange(img, bResp , text, stateOpacity, imgFill, state) {
 		if(svgPath)
 			svgPath.style.cssText =  img;
 		
-
-		var divText = getDisplayDocument().getElementById( this.name + 'TextDiv' );
-		var spanText = getDisplayDocument().getElementById( this.name + 'TextSpan' );
-
-		if(divText)
-			divText.className = text;
-
-		if(spanText)
-			spanText.className = text;
-
+		var svgText = getDisplayDocument().getElementById(this.name + 'text');
+		if(svgText){
+			var idx = text ? text.indexOf("url") : -1;
+			var textFill = text;
+			if(idx >= 0){
+				textFill = text.substring(idx);
+			}
+				
+			svgText.style.fill= textFill;
+		}
 
 		var svgImgFill = getDisplayDocument().getElementById(this.name + 'imgF');
 		if(svgImgFill){
@@ -1166,7 +1043,7 @@ function ObjButtonChange(img, bResp , text, stateOpacity, imgFill, state) {
 				imageFill = imgFill.substring(idx);
 			}
 				
-			svgImgFill.style.fill= imageFill ? imageFill : 'none';
+			svgImgFill.style.fill= typeof(imageFill)!='undefined' ? imageFill : 'none';
 		}
 	}
 	else if(this.hasOuterShadow && is.vml)
@@ -1243,18 +1120,10 @@ function ObjButtonWriteLayer( newContents ) {
   if (this.objLyr) this.objLyr.write( newContents )
 }
 
-function ObjButtonOnShow(bFromActivate)
-{
-	this.alreadyActioned = true;
-
-	this.objLyr.actionShow();
-
-	if (this.bIsWCAG && this.altName && (!bFromActivate || isLDPopup())) {
-		//console.log('calling aria read from: ' + this.name);
-		ariaReadThisText(this.text || this.altName || null);
-	}
-
-	this.setDisabled(this.bDisabled); //Disabled buttons shown on a delay were having the incorrect opacity
+function ObjButtonOnShow() {
+  this.alreadyActioned = true;
+  this.objLyr.actionShow();
+  this.setDisabled( this.bDisabled ); //Disabled buttons shown on a delay were having the incorrect opacity
 }
 
 function ObjButtonOnHide() {
@@ -1568,15 +1437,20 @@ function ObjLoadProps()
 			this.w = (typeof(obj.w)!="undefined"?obj.w:this.w);
 			this.h = (typeof(obj.h)!="undefined"?obj.h:this.h);
 			this.bBottom = (typeof(obj.bOffBottom)!="undefined"?obj.bOffBottom:this.bBottom);
+			this.td = typeof(obj.td)!="undefined"?obj.td:this.td;
+			this.tdO = typeof(obj.tdO)!="undefined"?obj.tdO:this.tdO;
+			this.tdD = typeof(obj.tdD)!="undefined"?obj.tdD:this.tdD;
+			this.tdDi = typeof(obj.tdDi)!="undefined"?obj.tdDi:this.tdDi;
 			
-			this.B64 = typeof(obj.B64)!="undefined"?obj.B64:this.B64;
+			this.base64Normal = typeof(obj.td)!="undefined"?obj.fd:this.base64Normal;
+			this.base64Over = typeof(obj.tdO)!="undefined"?obj.fdO:this.base64Over;
+			this.base64Down = typeof(obj.tdD)!="undefined"?obj.fdD:this.base64Down;
+			this.base64Disabled = typeof(obj.tdDi)!="undefined"?obj.fdDi:this.base64Disabled;
 			this.rebuildDefs();
 			
 			this.str_SvgMapPath = typeof(obj.p)!="undefined"?obj.p:this.str_SvgMapPath;
 			
 			this.stylemods = typeof(obj.stylemods)!="undefined"?obj.stylemods:null;
-			FindAndModifyObjCSSBulk(this, this.stylemods);
-
 			if(!this.changeContFired)
 			{
 				this.imgOffSrc = typeof(obj.i)!="undefined"?obj.i:this.imgOffSrc;
@@ -1617,23 +1491,71 @@ function ObjRespChanges()
 		if(!is.svg || !this.bUseSvgFile)
 		{
 		 	if(this.bDisabled)
-				this.change(this.imgDisabledSrc, true, null, this.stateOpacity.disabledState, null, "disabledState");
+				this.change(this.imgDisabledSrc, true, null, this.imgDisabledOpacity, null);
 			else
-				this.change(this.imgOffSrc, true, null, this.stateOpacity.normalState, null, "normalState");
+				this.change(this.imgOffSrc, true, null, this.imgOffOpacity, null);
 		}
 		else
 		{
 			if(this.bDisabled)
-				this.change(this.stateFills['disabledState'].stylePath, false, this.name+"disabledState"+"Text", this.stateOpacity.disabledState, this.stateImgFills['disabledState'].style, "disabledState")
-			else if (this.currentState != "normalState" )
-				this.change(this.stateFills[this.currentState].stylePath, false , this.name+this.currentState+"Text", this.stateOpacity[this.currentState], this.stateImgFills[this.currentState].style, this.currentState);
+				this.change(this.str_SvgStyleDisabled_Url, false , this.str_TxtFill_Disabled, this.imgDisabledOpacity, this.str_SvgDisabImgFills)
 			else
-			{
-				this.change(this.stateFills[this.baseState].stylePath, false , this.name+this.baseState+"Text", this.stateOpacity[this.baseState], this.stateImgFills[this.baseState].style, this.baseState);
-			} 
+				this.change(this.str_SvgStyleNormal_Url, false , this.str_TxtFill, this.imgOffOpacity, this.str_SvgImgFills);
 		}
 	}
 	
+	
+	if(this.td)
+	{
+		var replaceFill = getDisplayDocument().getElementById ( "Text_" + this.fuID);
+		if(replaceFill)
+		{
+			replaceFill.setAttribute('width' , this.w);
+			replaceFill.setAttribute('height' , this.h);
+			replaceFill.querySelector('image').setAttributeNS('http://www.w3.org/1999/xlink','href',this.td);
+			replaceFill.querySelector('image').setAttribute('width' , this.w);
+			replaceFill.querySelector('image').setAttribute('height' , this.h);
+		}
+	}
+	
+	if(this.tdO)
+	{
+		var replaceFill = getDisplayDocument().getElementById ( "Text_" + this.fuID + "_over");
+		if(replaceFill)
+		{
+			replaceFill.setAttribute('width' , this.w);
+			replaceFill.setAttribute('height' , this.h);
+			replaceFill.querySelector('image').setAttributeNS('http://www.w3.org/1999/xlink','href',this.tdO);
+			replaceFill.querySelector('image').setAttribute('width' , this.w);
+			replaceFill.querySelector('image').setAttribute('height' , this.h);
+		}
+	}
+	
+	if(this.tdD)
+	{
+		var replaceFill = getDisplayDocument().getElementById ( "Text_" + this.fuID + "_down");
+		if(replaceFill)
+		{
+			replaceFill.setAttribute('width' , this.w);
+			replaceFill.setAttribute('height' , this.h);
+			replaceFill.querySelector('image').setAttributeNS('http://www.w3.org/1999/xlink','href',this.tdD);
+			replaceFill.querySelector('image').setAttribute('width' , this.w);
+			replaceFill.querySelector('image').setAttribute('height' , this.h);
+		}
+	}
+	
+	if(this.tdDi)
+	{
+		var replaceFill = getDisplayDocument().getElementById ( "Text_" + this.fuID +  "_disabled");
+		if(replaceFill)
+		{
+			replaceFill.setAttribute('width' , this.w);
+			replaceFill.setAttribute('height' , this.h);
+			replaceFill.querySelector('image').setAttributeNS('http://www.w3.org/1999/xlink','href',this.tdDi);
+			replaceFill.querySelector('image').setAttribute('width' , this.w);
+			replaceFill.querySelector('image').setAttribute('height' , this.h);
+		}
+	}
 	
 	this.updateFillSize();
 			
@@ -1655,23 +1577,53 @@ function ObjButtonValidSource()
 	{
 		this.bOffPage = false;
 		if(this.bDisabled)
-			this.change(this.imgDisabledSrc, true, null, this.stateOpacity.disabledState, null, "disabledState");
+			this.change(this.imgDisabledSrc, true, null, this.imgDisabledOpacity,null);
 		else
-			this.change(this.imgOffSrc, true, null, this.stateOpacity.normalState, null, "normalState");
+			this.change(this.imgOffSrc, true, null, this.imgOffOpacity, null);
 	}
 }
 
-function ObjButtonSetTextValues( stateTextValues )
+function ObjButtonSetTextValues( str  , str2 , str3 ,str4 , str5 , str6 , str7 ,str8)
 {
-	// custStates
-	this.stateTextValues = stateTextValues; // used in trivantis.js
+	this.td = str;
+	this.str_TxtFill = str2;
+	
+	this.tdO = str3; 
+	this.str_TxtFill_Over = str4;
+	
+	this.tdD = str5;
+	this.str_TxtFill_Down = str6;
+	
+	this.tdDi = str7; 
+	this.str_TxtFill_Disabled = str8;
 	
 }
 
-function ObjButtonImageFillVal( stateImgFills   )
+function ObjButtonImageFillVal( strNormImgFill, strNormImg, strOverImgFill, strOverImg, strDownImgFill, strDownImg, strDisableFill, strDisableImg   )
 {
-	// custStates
-	this.stateImgFills = stateImgFills;
+	if( strNormImgFill ){
+		this.bHasSvgImageFill = true;
+		this.str_SvgImgFills = strNormImgFill; 
+		this.str_SvgImgFillB64Img = strNormImg;
+	}
+
+	if( strOverImgFill ){
+		this.bHasSvgOverImageFill = true;
+		this.str_SvgOverImgFills = strOverImgFill; 
+		this.str_SvgOverImgFillB64Img = strOverImg;
+	}
+
+	if( strDownImgFill ){
+		this.bHasSvgDownImageFill = true;
+		this.str_SvgDownImgFills = strDownImgFill; 
+		this.str_SvgDownImgFillB64Img = strDownImg;
+	}
+
+	if( strDisableFill ){
+		this.bHasSvgDisbaleImageFill = true;
+		this.str_SvgDisabImgFills = strDisableFill; 
+		this.str_SvgDisabImgFillB64Img = strDisableImg;
+	}
 }
 
 function ObjButtonRefresh(){
@@ -1852,11 +1804,7 @@ function ObjButtonSetupObjLayer(){
 		{
 			this.objLyr.theObjTag.addEventListener("keypress", function(e){
 				if(THIS.hasAct && THIS.hasOnUp && (e.keyCode == 13 || e.keyCode == 32)) 
-				{
-					if(!THIS.bIsWCAG)
-						THIS.onSelVisited();
 					THIS.onUp(); 
-				}
 				return false;}, true);
 		}
 	}
@@ -1872,26 +1820,43 @@ function ObjButtonSetupObjLayer(){
 	}
 }
 
+function ObjButtonSetBase64Images( str , str2, str3, str4)
+{
+	this.base64Normal = str;
+	this.base64Over= str2;
+	this.base64Down = str3;
+	this.base64Disabled = str4;
+}
+
 function ObjButtonRebuildDefs()
 {
-	if( typeof (this.btnStates) !== "undefined")
+	if(!this.bHasSvgImageFill && this.base64Normal && this.str_SvgStyleNormal_Url.indexOf("nonzero")==-1)
 	{
-		for (var i=0;i < this.btnStates.length;i++)
-		{
-			var btnState = this.btnStates[i];
-			var stateImgFill = this.stateImgFills[btnState];
-			if (stateImgFill.hasFill === undefined)
-				stateImgFill.hasFill = !!(stateImgFill.fill.trim()); // set boolean 
+		this.str_SvgStyle = "<pattern id=\"Picture_" + this.fuID + "\" x=\"0\" y=\"0\" width=\"" + this.w + "\" height=\""+ this.h +  "\" patternUnits=\"userSpaceOnUse\">\n";
+		this.str_SvgStyle += "<image xlink:href=\""+ this.base64Normal + "\" x=\"0\" y=\"0\" width=\"" + this.w + "\" height=\""+this.h +  "\" preserveAspectRatio=\"none\">\n";
+		this.str_SvgStyle += "</pattern>\n";
+	}
 			
-			if(!stateImgFill.hasFill && stateImgFill.B64 && this.stateFills[btnState].stylePath.indexOf("nonzero")==-1)
-			{
-				this.str_SvgStyle = "<pattern id=\"Picture_" + this.fuID + (btnState=='normalState'?'':'_'+btnState)+"\" x=\"0\" y=\"0\" width=\"" + this.w + "\" height=\""+ this.h +  "\" patternUnits=\"userSpaceOnUse\">\n";
-				this.str_SvgStyle += "<image xlink:href=\""+ stateImgFill.B64 + "\" x=\"0\" y=\"0\" width=\"" + this.w + "\" height=\""+this.h +  "\" preserveAspectRatio=\"none\">\n";
-				this.str_SvgStyle += "</pattern>\n";
-			}
-		}
+	if(!this.bHasSvgOverImageFill && this.base64Over && this.str_SvgStyleOver_Url.indexOf("nonzero")==-1)
+	{
+		this.str_SvgStyleOver = "<pattern id=\"Picture_" + this.fuID + "_over" + "\" x=\"0\" y=\"0\" width=\"" + this.w + "\" height=\""+ this.h +  "\" patternUnits=\"userSpaceOnUse\">\n";
+		this.str_SvgStyleOver += "<image xlink:href=\""+ this.base64Over + "\" x=\"0\" y=\"0\" width=\"" + this.w + "\" height=\""+this.h +  "\" preserveAspectRatio=\"none\">\n";
+		this.str_SvgStyleOver += "</pattern>\n";
 	}
 	
+	if(!this.bHasSvgDownImageFill && this.base64Down && this.str_SvgStyleDown_Url.indexOf("nonzero")==-1)
+	{
+		this.str_SvgStyleDown = "<pattern id=\"Picture_" + this.fuID + "_down" + "\" x=\"0\" y=\"0\" width=\"" + this.w + "\" height=\""+ this.h +  "\" patternUnits=\"userSpaceOnUse\">\n";
+		this.str_SvgStyleDown  += "<image xlink:href=\""+ this.base64Down + "\" x=\"0\" y=\"0\" width=\"" + this.w + "\" height=\""+this.h +  "\" preserveAspectRatio=\"none\">\n";
+		this.str_SvgStyleDown  += "</pattern>\n";
+	}
+	
+	if(!this.bHasSvgDisbaleImageFill && this.base64Disabled && this.str_SvgStyleDisabled_Url.indexOf("nonzero")==-1)
+	{
+		this.str_SvgStyleDisabled = "<pattern id=\"Picture_" + this.fuID + "_disabled" + "\" x=\"0\" y=\"0\" width=\"" + this.w + "\" height=\""+ this.h +  "\" patternUnits=\"userSpaceOnUse\">\n";
+		this.str_SvgStyleDisabled += "<image xlink:href=\""+ this.base64Disabled + "\" x=\"0\" y=\"0\" width=\"" + this.w + "\" height=\""+this.h +  "\" preserveAspectRatio=\"none\">\n";
+		this.str_SvgStyleDisabled += "</pattern>\n";
+	}
 }
 function ObjButtonGetPreloadString()
 {
@@ -1940,75 +1905,4 @@ function ObjButtonSetID(uID){
 
 function ObjInitLineWeight(lineWeight){
 	this.lineWeight = lineWeight;
-}
-
-function ObjButtonUpdateGroup(){
-
-	var props = this.btnSetProps;
-	if (props) 
-	{
-		this.setState('selectedState');
-		var parentVar = window[props["gprParentVar"]]; 
-		if(parentVar) 
-			parentVar.set(props["valueName"]);
-
-		var objParent = window[props["grpParentName"]];
-		if(objParent) 
-			objParent.updateButtonGrp(this);
-	}
-}
-
-function ObjButtonSetBaseState()
-{
-	this.setState(this.oldState);
-}
-
-function ObjButtonOnSelVisited()
-{
-	this.updateButtonGroup();
-
-	if(this.bVisitedEnabled)
-	{
-		this.setState('visitedState', true);
-	}  
-	
-	if(this.bSelectedEnabled)
-	{
-		if(!this.bSelectedActivated)
-		{
-			this.setState('selectedState');
-			this.bSelectedActivated = true;
-		}
-		else
-		{
-			this.setBaseState();
-			this.bSelectedActivated = false;
-		}
-	}
-}
-
-function ObjButtonLoadStateFromSession(strInit)
-{
-	if (typeof (this.strCookieState) != 'undefined')
-		this.setState(ObjButton.isSaveState(this.strCookieState) ? this.strCookieState : strInit);
-}
-
-function ObjButtonFocus()
-{
-	var focusElem = triv$('button', this.div).get(0) || this.div;
-	setTimeout(function () {
-		if (focusElem) focusElem.focus();
-	}, focusActionDelay);
-}
-
-ObjButton.isSaveState = function (state)
-{
-	return (
-		state != undefined &&
-		state != 0 &&
-		state != "normalState" &&
-		state != "disabledState" &&
-		state != "overState" &&
-		state != "downState"
-	);
 }

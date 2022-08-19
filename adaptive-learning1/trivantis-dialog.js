@@ -273,16 +273,12 @@ jsDialog.prototype.createTitleBar = function()
 	buttonDiv.className = 'DLG_titleBtns';
 	this.divTitleBar.appendChild(buttonDiv);
 
-	this.divCloseBtn = this.doc.createElement('input');
-	this.divCloseBtn.type = "button";
+	this.divCloseBtn = this.doc.createElement('DIV');
 	this.divCloseBtn.id = "closeBtn";
-	this.divCloseBtn.className = 'DLG_titleCloseBtn';
-	this.divCloseBtn.setAttribute('aria-label', 'Close Window'); // LD-7224
+	this.divCloseBtn.className='DLG_titleCloseBtn';
 	this.divCloseBtn.onmouseover = function(e){ return THIS.onMOverBtn(e); };
 	this.divCloseBtn.onmouseout = function(e){ return THIS.onMOutBtn(e); };
 	this.divCloseBtn.onclick = function(e){ return THIS.onCancel(e); };
-
-	this.divCloseBtn.tabIndex = 0;
 	if ( !this.isClosable )	this.divCloseBtn.style.display='none';
 	buttonDiv.appendChild(this.divCloseBtn);
 
@@ -329,15 +325,6 @@ jsDialog.prototype.onInitDialog = function()
 		setTimeout(function(){THIS.initialized=true;}, 600); 
 	else
 		THIS.initialized=true;
-
-	var preDiv = document.createElement('div');
-	this.preNode = this.divEle.parentNode.insertBefore(preDiv,
-		this.divEle);
-	this.preNode.tabIndex = 0;
-	var postDiv = document.createElement('div');
-	this.postNode = this.divEle.parentNode.insertBefore(postDiv,
-		this.divEle.nextSibling);
-	this.postNode.tabIndex = 0;
 
 	return true;
 };
@@ -509,15 +496,12 @@ jsDialog.prototype.onOK = function(e)
 
 jsDialog.prototype.endDialog = function()
 {
-	this.removeListeners();
 	this.closed = true;
 	this.destroy()
-
 };
 
 jsDialog.prototype.destroy = function()
 {
-	var prevFocus = this.prevFocus;
 	if ( this.divEleContent )
 	{
 		if( this.isIframe )
@@ -539,8 +523,7 @@ jsDialog.prototype.destroy = function()
 
 		this[attr] = null;
 	}
-	if(typeof(prevFocus) != "undefined" )
-		prevFocus.focus();
+
 	return true;
 };
 
@@ -771,18 +754,9 @@ jsDlgMsgBox.prototype.onInitDialog = function()
 	var THIS = this;
 	var ele = this.doc.getElementById('IDOK_'+this.winId);
 	if( ele ) ele.onclick = function(e){ return THIS.onBtn(e,IDOK); };
+	if( ele && !is.iOS ) ele.focus(); // the !is.iOS check: BUG 21133
 	ele = this.doc.getElementById('IDCAN_'+this.winId);
 	if( ele ) ele.onclick = function(e){ return THIS.onBtn(e,IDCAN); };
-	
-	this.divEle.setAttribute('role', "alertdialog")
-
-	this.divEle.setAttribute('aria-describedby', this.EID_MSG_DIV);	
-	
-	this.addListeners();
-	aria.OpenDialogList.push(this);
-
-	ele = this.doc.getElementById('IDOK_'+this.winId);
-	if( ele && !is.iOS ) ele.focus(); // the !is.iOS check: BUG 21133
 		
 	return jsDialog.prototype.onInitDialog.call(this);
 };
@@ -806,10 +780,8 @@ jsDlgMsgBox.prototype.getBtnHTML = function(btnId)
 
 	switch ( btnId )
 	{
-		case IDOK:
-			n = v = trivstrOK; id = 'IDOK_' + this.winId; break;
-		case IDCAN:
-			n = v = trivstrCancel; id = 'IDCAN_' + this.winId; break;
+		case IDOK:       n = v = trivstrOK; id='IDOK_'+this.winId; break;
+		case IDCAN:      n = v = trivstrCancel; id='IDCAN_'+this.winId; break;
 	}
 
 	return( this.btnHTML + "id='" + id +"' name='" + n + "' value='" + v + "' onclick='alert(this.value);'/>" );
@@ -825,6 +797,7 @@ jsDlgMsgBox.prototype.onBtn = function(e,btnId)
 		return cb(e, btnId);
 	return btnId;
 };
+
 
 
 function jsDlgPromptBox(pWinId, title, msg, deftxt, cb, width, height)
@@ -899,12 +872,6 @@ jsDlgPromptBox.prototype.onInitDialog = function()
 	if( ele ) ele.onclick = function(e){ return THIS.onBtn(e,IDOK); };
 	ele = this.doc.getElementById('IDCAN_'+this.winId);
 	if( ele ) ele.onclick = function(e){ return THIS.onBtn(e,IDCAN); };
-
-	this.divEle.setAttribute('role', "alertdialog")
-	this.divEle.setAttribute('aria-describedby', this.EID_MSG_DIV)
-	
-	this.addListeners();
-	aria.OpenDialogList.push(this);
 		
 	return jsDialog.prototype.onInitDialog.call(this);
 };
@@ -986,51 +953,4 @@ jsDlgBox.prototype = new jsDialog();
 jsDlgBox.prototype.create = function(doc)
 {
 	jsDialog.prototype.create.call(this, doc);
-	this.addListeners();
-	aria.OpenDialogList.push(this);
-
-	var THIS = this;
-
-	setTimeout( function(){
-		var ele = THIS.divEleContent.contentDocument.body.children[0];
-		THIS.divEleContent.contentDocument.body.tabIndex = -1;
-		THIS.divEleContent.contentDocument.addEventListener('keyup', aria.handleEscape);
-
-		aria.Utils.focusFirstDescendant(ele, true);
-	}, 250);
-
-
 };
-
-
-
-
-jsDialog.prototype.addListeners = function () {
-	getDisplayDocument().addEventListener('focus', this.trapFocus, true);
-}
-
-jsDialog.prototype.removeListeners = function () {
-	getDisplayDocument().removeEventListener('focus', this.trapFocus, true);
-}
-
-jsDialog.prototype.trapFocus = function (event) {
-    if (aria.Utils.IgnoreUtilFocusChanges) {
-      return;
-    }
-    var currentDialog = aria.getCurrentDialog().divEle;
-    if (currentDialog && currentDialog.contains(event.target)) {
-      currentDialog.lastFocus = event.target;
-    }
-    else {
-      aria.Utils.focusFirstDescendant(currentDialog);
-      if (currentDialog.lastFocus == document.activeElement) {
-        aria.Utils.focusLastDescendant(currentDialog);
-      }
-      currentDialog.lastFocus = document.activeElement;
-    }
-}
-
-jsDialog.prototype.setPrevFocus = function (target)
-{
-	this.prevFocus = target;
-}

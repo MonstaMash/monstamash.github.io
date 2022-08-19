@@ -64,7 +64,7 @@
 	position:absolute;
 	right:1px;
 	top:2px; /* EJT changed from 1px to 2px for PROBLEM2 */
-	width:24px;
+	width:100px;
 	padding:0px;
 	margin:0px;
 	height:11px;
@@ -77,21 +77,15 @@
 /* General button rules */
 .DLG_titleCloseBtn{
 	background-repeat:no-repeat;
-	background-position:center;
+	background-position:center 3px;
+	*background-position:center 2px; /* EJT add for IE only for PROBLEM2 */
 	margin:0px;
-	width:13px;
-	height:13px;
+	padding:2px;
+	*padding:1px; /* EJT added for IE only for PROBLEM2 */
+	width:11px;
+	height:11px;
 	*overflow-y:hidden; /* EJT added for IE only for PROBLEM2 */
-
-	
 }
-
-@media screen\0 {  
-	.DLG_titleCloseBtn{
-		border: none;
-	}
-}
-
 
 .DLG_titleCloseBtn{
 	background-image:url(./images/dlg-close.gif);

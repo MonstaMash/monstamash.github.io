@@ -151,4 +151,4 @@ ButtonTrackingObj.prototype.SavePageTracking = function()
 }
 
 var trivBtnTracking = new ButtonTrackingObj(365,'adaptivelearningproto1', 0, null);
-trivBtnTracking.title={id:1,v:0,c:[{id:5576,v:'normalState'}]};
+trivBtnTracking.title={id:1,v:0,c:[{id:7108,v:'normalState'},{id:5576,v:'normalState'}]};

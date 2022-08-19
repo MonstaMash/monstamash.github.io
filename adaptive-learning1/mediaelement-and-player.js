@@ -1677,15 +1677,6 @@ Object.assign(_player2.default.prototype, {
 				}
 			}();
 
-		   //TRIVANTIS TAG - LD-6878 LO-5714 mediaelement progress bar not working when scaling is set
-			var tsf = GetCurrentPageDiv().style.transform || '';
-			if (tsf)
-			{
-				var parts = /scale\((.*)\)/.exec(tsf);
-				if (parts && parts.length > 1)
-					width = width * parseFloat(parts[1]);
-			}
-
 			var percentage = 0,
 			    leftPos = 0,
 			    pos = 0,
@@ -1739,23 +1730,19 @@ Object.assign(_player2.default.prototype, {
 						var half = t.timefloat.offsetWidth / 2,
 						    offsetContainer = mejs.Utils.offset(t.getElement(t.container)),
 						    tooltipStyles = getComputedStyle(t.timefloat);
-							
-// LD-7888 Ignore the position fixes for left and right edges. We'll always have something there.
-//						if ((x - offsetContainer.left) < (t.timefloat.offsetWidth)) {
-//							leftPos = half;
-//						} else if ((x - offsetContainer.left) / trivScale >= (t.getElement(t.container).offsetWidth - half) / trivScale) {
-//							leftPos = t.total.offsetWidth - half;
-//						} else {
+
+						if (x - offsetContainer.left < t.timefloat.offsetWidth) {
+							leftPos = half;
+						} else if (x - offsetContainer.left >= t.getElement(t.container).offsetWidth - half) {
+							leftPos = t.total.offsetWidth - half;
+						} else {
 							leftPos = pos;
-//						}
+						}
 
 						if ((0, _dom.hasClass)(t.getElement(t.container), t.options.classPrefix + 'long-video')) {
 							leftPos += parseFloat(tooltipStyles.marginLeft) / 2 + t.timefloat.offsetWidth / 2;
 						}
 
-						// LD-7888 adjust for page scaling
-						leftPos = leftPos / (MediaElementPlayer.__trivScale || 1);
-						
 						t.timefloat.style.left = leftPos + 'px';
 						t.timefloatcurrent.innerHTML = (0, _time.secondsToTimeCode)(t.newTime, player.options.alwaysShowHours, player.options.showTimecodeFrameCount, player.options.framesPerSecond, player.options.secondsDecimalLength, player.options.timeFormat);
 						t.timefloat.style.display = 'block';
@@ -2051,7 +2038,7 @@ Object.assign(_player2.default.prototype, {
 
 		if (percent !== null) {
 			percent = Math.min(1, Math.max(0, percent));
-			
+
 			if (t.loaded) {
 				t.setTransformStyle(t.loaded, 'scaleX(' + percent + ')');
 			}
@@ -2071,23 +2058,9 @@ Object.assign(_player2.default.prototype, {
 
 			if (t.total && t.handle) {
 				var tW = parseFloat(getComputedStyle(t.total).width);
-				
-				// TRIVANTIS TAG - LD-6878 LO-5714 mediaelement progress bar not working when scaling is set
-				var offsetWidth = t.handle.offsetWidth;
-				var tsf = ( GetCurrentPageDiv() && GetCurrentPageDiv().style && GetCurrentPageDiv().style.transform ? GetCurrentPageDiv().style.transform : '' );
-
-				if (tsf)
-				{
-					var parts = /scale\((.*)\)/.exec(tsf);
-					if (parts && parts.length > 1)
-					{
-						tW = tW * parseFloat(parts[1]);
-						offsetWidth = offsetWidth * parseFloat(parts[1]);
-					}
-				}
 
 				var newWidth = Math.round(tW * nTime / t.getDuration()),
-					handlePos = newWidth - Math.round(offsetWidth / 2);
+				    handlePos = newWidth - Math.round(t.handle.offsetWidth / 2);
 
 				handlePos = handlePos < 0 ? 0 : handlePos;
 				t.setTransformStyle(t.current, 'scaleX(' + newWidth / tW + ')');
@@ -2665,8 +2638,9 @@ Object.assign(_player2.default.prototype, {
 				for (var j = 0, total = attributes.length; j < total; j++) {
 					if (attributes[j].name.startsWith('on') || attributes[j].value.startsWith('javascript')) {
 						allElements[_i12].remove();
+					} else if (attributes[j].name === 'style') {
+						allElements[_i12].removeAttribute(attributes[j].name);
 					}
-					// else if (attributes[j].name === 'style') { allElements[_i12].removeAttribute(attributes[j].name); }
 				}
 			}
 			return div.innerHTML;
@@ -3181,7 +3155,7 @@ Object.assign(_player2.default.prototype, {
 
 			if (mode === 'vertical') {
 				var railHeight = parseFloat(volumeStyles.height),
-				    newY = (e.pageY - totalOffset.top) / (MediaElementPlayer.__trivScale || 1);
+				    newY = e.pageY - totalOffset.top;
 
 				volume = (railHeight - newY) / railHeight;
 
@@ -7500,8 +7474,7 @@ var UA = exports.UA = NAV.userAgent.toLowerCase();
 var IS_IPAD = exports.IS_IPAD = /ipad/i.test(UA) && !_window2.default.MSStream;
 var IS_IPHONE = exports.IS_IPHONE = /iphone/i.test(UA) && !_window2.default.MSStream;
 var IS_IPOD = exports.IS_IPOD = /ipod/i.test(UA) && !_window2.default.MSStream;
-//LD-7135  var IS_IOS = is.iOS;// TRIVANTIS-TAG LD-7110 exports.IS_IOS = /ipad|iphone|ipod/i.test(UA) && !_window2.default.MSStream;
-var IS_IOS = exports.IS_IOS = UA.match(/iphone|ipod|ipad/) || (!UA.match(/i(phone|pad|os)/) && UA.match(/mac os/) && NAV.maxTouchPoints && NAV.maxTouchPoints > 2);
+var IS_IOS = is.iOS;// TRIVANTIS-TAG LD-7110 exports.IS_IOS = /ipad|iphone|ipod/i.test(UA) && !_window2.default.MSStream;
 var IS_ANDROID = exports.IS_ANDROID = /android/i.test(UA);
 var IS_IE = exports.IS_IE = /(trident|microsoft)/i.test(NAV.appName);
 var IS_EDGE = exports.IS_EDGE = 'msLaunchUri' in NAV && !('documentMode' in _document2.default);
